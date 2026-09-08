@@ -164,20 +164,35 @@ check(
   `kopf=${zurueckKarte.kopf.join("/")} offen=${zurueckKarte.offen.join("/")}`,
 );
 
+const angebotsText = await page.locator("#angebot").innerText();
+
 // Die Staffel: Zahlen kommen aus der Engine, nicht aus dem Markup.
 const staffel = await page.locator("#angebot table").innerText();
-for (const [flaeche, preis] of [
-  ["100 m²", "99.00"],
-  ["150 m²", "149.00"],
-  ["200 m²", "198.00"],
-  ["250 m²", "248.00"],
+for (const [was, preis] of [
+  ["Essential bei 100 m²", "99.00"],
+  ["Essential bei 150 m²", "149.00"],
+  ["Essential bei 200 m²", "198.00"],
+  ["Essential bei 250 m²", "248.00"],
+  ["Plus bei 100 m²", "139.00"],
+  ["Complete bei 100 m²", "179.00"],
+  ["Plus bei 200 m²", "278.00"],
 ]) {
-  check(`Staffel: ${flaeche} kostet CHF ${preis}`, staffel.includes(preis), flaeche);
+  check(`Staffel: ${was} kostet CHF ${preis}`, staffel.includes(preis), was);
 }
-check("Staffel nennt den Abopreis CHF 123.75", staffel.includes("123.75"));
 check(
-  "Der Bedingungssatz steht unter dem Angebot",
-  (await page.locator("#angebot").innerText()).includes("normal verschmutzte"),
+  "Die drei Paketpreise stehen im Angebot",
+  ["99.00", "139.00", "179.00", "82.50", "115.85", "149.15"].every((z) =>
+    angebotsText.includes(z),
+  ),
+);
+check("Genau ein Paket ist im Angebot als beliebt markiert",
+  (await page.locator("#angebot").getByText("Beliebt").count()) === 2,
+  "einmal in der Übersicht, einmal auf der Karte",
+);
+check("Der Bedingungssatz steht unter dem Angebot", angebotsText.includes("normal verschmutzte"));
+check(
+  "Die Zusatzleistungen stehen mit Preis da",
+  ["4.50", "19.90", "2.50", "9.90"].every((z) => angebotsText.includes(z)),
 );
 
 await page.evaluate(() => window.scrollTo(0, 0));
@@ -185,73 +200,161 @@ await page.waitForTimeout(400);
 
 // ---------- Rechner ----------
 const preisEl = page.locator("section[aria-label='Preisrechner'] p.text-4xl");
+const rechner = page.locator("section[aria-label='Preisrechner']");
 const parse = (s) => Number(String(s).replace(/[^\d.]/g, ""));
+const proTerminText = () => rechner.getByText(/à CHF/).first().textContent();
 
 const startpreis = (await preisEl.textContent())?.trim();
 check(
-  "Referenzfall: 100 m² wöchentlich ergibt CHF 396.00 im Monat",
+  "Referenzfall: Essential, 100 m², viermal im Monat ergibt CHF 396.00",
   parse(startpreis) === 396,
   startpreis,
 );
 
+// Paketwechsel: Florijans drei Preise, alle drei aus derselben Rechnung
+for (const [name, proTermin] of [
+  ["Plus", 139],
+  ["Complete", 179],
+  ["Essential", 99],
+]) {
+  await page.getByRole("button", { name: new RegExp(`^Office ${name},`) }).click();
+  await page.waitForTimeout(200);
+  check(
+    `Paket ${name} kostet CHF ${proTermin}.00 pro Reinigung`,
+    parse(await preisEl.textContent()) === proTermin * 4,
+    (await preisEl.textContent())?.trim(),
+  );
+}
+
+// "Beliebt" darf genau einmal vorkommen — sonst ist es keine Empfehlung mehr
+check(
+  "Genau ein Paket ist als beliebt ausgezeichnet",
+  (await rechner.getByText("Beliebt").count()) === 1,
+);
+
+// Termine pro Monat: der Paketpreis mal der gewählten Anzahl
+for (const [label, mal] of [
+  ["1× im Monat", 1],
+  ["2× im Monat", 2],
+  ["3× im Monat", 3],
+  ["4× im Monat", 4],
+]) {
+  await page.getByRole("button", { name: new RegExp(`^${label}`) }).click();
+  await page.waitForTimeout(180);
+  check(
+    `${label} ergibt CHF ${99 * mal}.00`,
+    parse(await preisEl.textContent()) === 99 * mal,
+    (await preisEl.textContent())?.trim(),
+  );
+}
+
+// Einmalig schliesst das Abo aus, statt einen Preis zu zeigen, den es nicht gibt
+await page.getByRole("button", { name: /^einmalig/ }).click();
+await page.waitForTimeout(200);
+check(
+  "Einmalig sperrt das Abo",
+  await page.getByRole("button", { name: /Abo 12 Monate/ }).isDisabled(),
+);
+check(
+  "Und zeigt den Einzelpreis statt einer Sackgasse",
+  parse(await preisEl.textContent()) === 99,
+  (await preisEl.textContent())?.trim(),
+);
+await page.getByRole("button", { name: /^4× im Monat/ }).click();
+await page.waitForTimeout(180);
+
 // Tarifwechsel muss den Preis senken — Florijans Abopreis
 await page.getByRole("button", { name: /Abo 12 Monate/ }).click();
-await page.waitForTimeout(150);
+await page.waitForTimeout(200);
 const aboPreis = (await preisEl.textContent())?.trim();
 check("Abo ergibt CHF 330.00 im Monat", parse(aboPreis) === 330, aboPreis);
 
 // 150 m² im Abo: Florijans eigene Rechnung, 123.75 pro Termin
 await page.locator("#sqm").fill("150");
-await page.waitForTimeout(200);
-const proTermin = await page
-  .locator("section[aria-label='Preisrechner']")
-  .getByText(/à CHF/)
-  .first()
-  .textContent();
+await page.waitForTimeout(250);
 check(
-  "150 m² im Abo kosten CHF 123.75 pro Termin",
-  /123\.75/.test(proTermin ?? ""),
-  proTermin?.trim(),
+  "150 m² im Abo kosten CHF 123.75 pro Reinigung",
+  /123\.75/.test((await proTerminText()) ?? ""),
+  (await proTerminText())?.trim(),
 );
-await page.locator("#sqm").fill("100");
-await page.waitForTimeout(150);
 
-// 150 m² im Standardtarif: Florijans gerundete Zahl, nicht 148.50
-await page.getByRole("button", { name: /^Standard/ }).click();
-await page.locator("#sqm").fill("150");
-await page.waitForTimeout(200);
-const std150 = (await preisEl.textContent())?.trim();
+// 150 m² einzeln: die gerundete Zahl, nicht 148.50
+await page.getByRole("button", { name: /^Einzeln/ }).click();
+await page.waitForTimeout(250);
 check(
-  "150 m² im Standardtarif kosten CHF 149.00 pro Termin",
-  parse(std150) === 149 * 4,
-  `${std150} im Monat`,
+  "150 m² einzeln kosten CHF 149.00 pro Reinigung",
+  parse(await preisEl.textContent()) === 149 * 4,
+  `${(await preisEl.textContent())?.trim()} im Monat`,
 );
 await page.locator("#sqm").fill("100");
 await page.getByRole("button", { name: /Abo 12 Monate/ }).click();
-await page.waitForTimeout(150);
-
-// Fensterreinigung darf keinen Preis erfinden
-await page.getByRole("button", { name: /^Fensterreinigung/ }).click();
 await page.waitForTimeout(200);
-const fensterOffen = await page.getByText("Fensterreinigung: kein Onlinepreis").isVisible();
-const preisNachFenster = (await preisEl.textContent())?.trim();
-check("Fensterreinigung wird als offen ausgewiesen", fensterOffen);
+
+// Zusatzleistung mit Menge: Stühle rechnen mit der Anzahl
+await page.getByRole("button", { name: /^Stühle reinigen/ }).click();
+await page.waitForTimeout(200);
+const stuhlFeld = page.getByLabel("Stühle reinigen: Stuhl");
+await stuhlFeld.fill("8");
+await stuhlFeld.blur();
+await page.waitForTimeout(250);
 check(
-  "Fensterreinigung verändert den Preis nicht",
-  parse(preisNachFenster) === parse(aboPreis),
-  `${aboPreis} -> ${preisNachFenster}`,
+  "Acht Stühle kosten CHF 20.00 zusätzlich",
+  parse(await preisEl.textContent()) === (82.5 + 20) * 4,
+  (await preisEl.textContent())?.trim(),
 );
-await page.getByRole("button", { name: /^Fensterreinigung/ }).click();
+await page.getByRole("button", { name: /^Stühle reinigen/ }).click();
+await page.waitForTimeout(200);
+
+// Was das Paket abdeckt, darf nicht ein zweites Mal berechnet werden
+await page.getByRole("button", { name: /^Küchenzeile reinigen/ }).click();
+await page.waitForTimeout(200);
+const mitKueche = parse(await preisEl.textContent());
+await page.getByRole("button", { name: /^Office Plus,/ }).click();
+await page.waitForTimeout(250);
+const plusPreis = parse(await preisEl.textContent());
+check(
+  "Küchenzeile schlägt bei Essential auf",
+  mitKueche === (82.5 + 14.9) * 4,
+  String(mitKueche),
+);
+check(
+  "Bei Plus ist sie enthalten und kostet nichts extra",
+  plusPreis === 115.85 * 4,
+  String(plusPreis),
+);
+check(
+  "Und der Rechner sagt das auch",
+  await rechner.getByText("in Office Plus").first().isVisible(),
+);
+await page.getByRole("button", { name: /^Office Essential,/ }).click();
+await page.getByRole("button", { name: /^Küchenzeile reinigen/ }).click();
+await page.waitForTimeout(200);
+
+// Teppichreinigung hat weiterhin keinen Onlinepreis
+await page.getByRole("button", { name: /^Teppich-Tiefenreinigung/ }).click();
+await page.waitForTimeout(250);
+const vorTeppich = 82.5 * 4;
+check(
+  "Teppichreinigung wird als offen ausgewiesen",
+  await page.getByText("Teppich-Tiefenreinigung: kein Onlinepreis").isVisible(),
+);
+check(
+  "Teppichreinigung verändert den Preis nicht",
+  parse(await preisEl.textContent()) === vorTeppich,
+  (await preisEl.textContent())?.trim(),
+);
+await page.getByRole("button", { name: /^Teppich-Tiefenreinigung/ }).click();
+await page.waitForTimeout(200);
 
 // Ausserhalb des Einzugsgebiets: kein erfundener Preis
 await page.locator("#distance").fill("50");
-await page.waitForTimeout(200);
+await page.waitForTimeout(250);
 check(
   "Ausserhalb des Gebiets wird kein Preis erfunden",
   await page.getByText("Das rechnen wir persönlich").isVisible(),
 );
 await page.locator("#distance").fill("10");
-await page.waitForTimeout(150);
+await page.waitForTimeout(200);
 
 // ---------- Assistent ----------
 const input = page.locator("#assistant-input");
@@ -264,8 +367,13 @@ async function frage(text) {
   return (await log.innerText()).trim();
 }
 
-check("Preisfrage nennt den echten Stundenpreis", (await frage("Was kostet das?")).includes("99"));
+const antwortAufPreis = await frage("Was kostet das?");
+check("Preisfrage nennt den echten Preis", antwortAufPreis.includes("99"));
 check("Abofrage nennt CHF 82.50 und 330", (await frage("gibt es ein abo")).includes("82.50"));
+check(
+  "Preisfrage nennt alle drei Pakete",
+  ["99", "139", "179"].every((z) => antwortAufPreis.includes(z)),
+);
 check(
   "Zimmerfrage wird korrekt verneint",
   (await frage("kostet es mehr wenn ich mehr zimmer habe")).includes("nach Fläche"),
@@ -275,20 +383,25 @@ check(
   (await frage("was ist inklusive")).includes("Türgriffe"),
 );
 check(
-  "Fensterpreis wird nicht erfunden",
-  (await frage("was kostet fensterreinigung")).includes("Festpreis"),
+  "Fensterpreis wird nach Glasfläche genannt",
+  (await frage("was kostet fensterreinigung")).includes("4.50"),
+);
+check(
+  "Teppichpreis wird weiterhin nicht erfunden",
+  (await frage("reinigen sie teppiche")).includes("Festpreis"),
+);
+check(
+  "Frage nach der Häufigkeit wird beantwortet",
+  (await frage("wie oft kommen sie im monat")).includes("viermal"),
 );
 check(
   "Flächenfrage nennt die Staffel",
   (await frage("was kostet 200 quadratmeter")).includes("198"),
 );
+const antwortAufPakete = await frage("unterschied essential plus complete");
 check(
-  "Teppichfrage wird nicht mit dem Grundpreis beantwortet",
-  (await frage("reinigen sie auch teppiche")).includes("Teppich-Tiefenreinigung"),
-);
-check(
-  "Frage nach den Paketen wird beantwortet",
-  (await frage("unterschied essential plus complete")).includes("Complete"),
+  "Frage nach den Paketen nennt alle drei Preise",
+  ["99", "139", "179"].every((z) => antwortAufPakete.includes(z)),
 );
 check(
   "Frage nach starker Verschmutzung wird ehrlich beantwortet",
@@ -340,10 +453,46 @@ const karteMobil = await page.evaluate(async () => {
   const k = document.querySelector(".offer-card").getBoundingClientRect();
   return { top: Math.round(k.top), unten: Math.round(k.bottom), vh: window.innerHeight };
 });
+// Mit Rand, nicht bündig: exakt passend heisst, dass die naechste laengere
+// Zeile oder eine andere Schrift wieder ueberlaeuft.
+const LUFT = 16;
+// Seitlich abgeschnittener Text: `overflow: hidden` fuer die Zeilenhoehe
+// kappt sonst lange Komposita mitten im Wort, ohne dass es auffaellt.
+const gekappt = await page.evaluate(() =>
+  [...document.querySelectorAll(".offer-card span, .offer-card li")]
+    .filter((el) => el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0)
+    .map((el) => el.textContent?.trim().slice(0, 40) ?? "")
+    .slice(0, 3),
+);
+check("Kein Text in der Paketkarte wird seitlich gekappt", gekappt.length === 0, gekappt.join(" | "));
+
+// Nicht nur "passt rein": eine Zusatzzeile, die auf dem Handy drei Zeilen
+// braucht, hat ein Wort mitten durchgebrochen und liest sich schlecht.
+const langeZeilen = await page.evaluate(() =>
+  [...document.querySelectorAll(".offer-add")]
+    .map((z) => {
+      const text = z.querySelector(".min-w-0");
+      if (!text) return null;
+      const lh = parseFloat(getComputedStyle(text).lineHeight);
+      const n = Math.round(z.getBoundingClientRect().height / lh);
+      return n > 2 ? `${z.textContent?.trim().slice(0, 30)} (${n} Zeilen)` : null;
+    })
+    .filter(Boolean),
+);
 check(
-  "Die ausgewachsene Paketkarte passt aufs Handy",
-  karteMobil !== null && karteMobil.top >= 0 && karteMobil.unten <= karteMobil.vh,
-  karteMobil ? `${karteMobil.top}px bis ${karteMobil.unten}px in ${karteMobil.vh}px` : "keine Karte",
+  "Keine Zusatzzeile bricht auf dem Handy dreizeilig um",
+  langeZeilen.length === 0,
+  langeZeilen.join(" | "),
+);
+
+check(
+  "Die ausgewachsene Paketkarte passt mit Rand aufs Handy",
+  karteMobil !== null &&
+    karteMobil.top >= LUFT &&
+    karteMobil.unten <= karteMobil.vh - LUFT,
+  karteMobil
+    ? `${karteMobil.top}px bis ${karteMobil.unten}px in ${karteMobil.vh}px`
+    : "keine Karte",
 );
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForTimeout(300);

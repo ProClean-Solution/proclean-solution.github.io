@@ -4,8 +4,7 @@ import { useLayoutEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { business } from "@/config/business";
-import { TARIFFS } from "@/lib/pricing/catalog";
-import { formatMoney } from "@/lib/pricing/engine";
+import { formatMoney, packagePriceCents } from "@/lib/pricing/engine";
 import { Magnetic } from "./magnetic";
 
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
@@ -81,8 +80,8 @@ export function Hero() {
         </h1>
 
         <p className="hero-sub mt-8 max-w-xl text-lg leading-relaxed text-[var(--stage-dim)] sm:text-xl">
-          Büroreinigung in Zürich und Umgebung zum festen Stundenpreis. Sie sehen den
-          Preis, bevor Sie mit uns sprechen.
+          Büroreinigung in Zürich und Umgebung. Drei Pakete, ein klarer Preis pro
+          Reinigung. Sie sehen ihn, bevor Sie mit uns sprechen.
         </p>
 
         <div className="hero-actions mt-10 flex flex-wrap items-center gap-3">
@@ -103,7 +102,11 @@ export function Hero() {
 
         <dl className="hero-facts mt-16 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--stage-line)] sm:grid-cols-3">
           {[
-            { k: "Ab", v: formatMoney(TARIFFS.abo12.hourlyCents), s: "pro Stunde im Abo" },
+            {
+              k: "Ab",
+              v: formatMoney(packagePriceCents(100, "essential", "abo12")),
+              s: "pro Reinigung bis 100 m² im Abo",
+            },
             { k: "100 m²", v: "1 Std.", s: "unabhängig von der Zimmerzahl" },
             { k: "Antwort", v: "24 Std.", s: "an Werktagen" },
           ].map((f) => (

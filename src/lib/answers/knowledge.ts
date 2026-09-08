@@ -47,7 +47,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Was kostet eine Reinigung?",
     answer:
-      "Bis 100 m² kostet eine Reinigung CHF 99.– — das ist eine Stunde Arbeit. Grössere Büros rechnen wir nach Fläche: CHF 0.99 pro m². Also 150 m² = CHF 149.–, 200 m² = CHF 198.–, 250 m² = CHF 248.–. Bei wöchentlicher Reinigung sind 100 m² CHF 396.– im Monat. Wie viele Zimmer das Objekt hat, spielt keine Rolle — nur die Fläche zählt.",
+      "Sie wählen eines von drei Paketen, der Preis gilt pro Reinigung bis 100 m²: Office Essential CHF 99.–, Office Plus CHF 139.–, Office Complete CHF 179.–. Grössere Büros rechnen wir linear hoch — bei Essential sind das CHF 0.99 pro m². Danach legen Sie fest, wie oft im Monat wir kommen: einmal bis viermal. Wie viele Zimmer das Objekt hat, spielt keine Rolle — nur die Fläche zählt.",
     keywords: [
       "preis", "kosten", "was kostet", "wie teuer", "teuer", "guenstig", "tarif",
       "stundenlohn", "stundensatz", "franken", "chf", "preisliste", "offerte",
@@ -61,7 +61,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Gibt es einen günstigeren Tarif?",
     answer:
-      "Ja, das Abo mit zwölf Monaten Mindestlaufzeit: CHF 82.50 statt CHF 99.– bis 100 m², darüber CHF 0.825 statt CHF 0.99 pro m². Für das 100-m²-Büro sind das CHF 330.– im Monat statt CHF 396.–, also rund 17 Prozent weniger. 150 m² kosten im Abo CHF 123.75 pro Reinigung, 200 m² CHF 165.–. Nach den zwölf Monaten läuft es monatlich weiter und ist jederzeit kündbar.",
+      "Ja, das Abo mit zwölf Monaten Mindestlaufzeit — rund 17 Prozent günstiger, und zwar bei jedem Paket. Essential kostet CHF 82.50 statt CHF 99.–, Plus CHF 115.85 statt CHF 139.–, Complete CHF 149.15 statt CHF 179.–. Für das 100-m²-Büro mit vier Reinigungen im Monat sind das CHF 330.– statt CHF 396.–. 150 m² kosten im Abo CHF 123.75 pro Reinigung. Nach den zwölf Monaten läuft es monatlich weiter und ist jederzeit kündbar.",
     keywords: [
       "abo", "abonnement", "guenstiger", "rabatt", "vertrag", "laufzeit",
       "mindestlaufzeit", "sparen", "regelmaessig", "dauerauftrag", "binden",
@@ -74,7 +74,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Was kostet es bei 150 oder 200 m²?",
     answer:
-      "Über 100 m² rechnen wir CHF 0.99 pro Quadratmeter, im 12-Monats-Abo CHF 0.825. Konkret: 150 m² = CHF 149.– (Abo CHF 123.75), 200 m² = CHF 198.– (Abo CHF 165.–), 250 m² = CHF 248.– (Abo CHF 206.25). Zusätzliche Reinigungszeit berechnen wir nur dann, wenn sie tatsächlich gebraucht wird.",
+      "Über 100 m² läuft der Paketpreis linear weiter. Bei Office Essential sind das CHF 0.99 pro Quadratmeter, im 12-Monats-Abo CHF 0.825: 150 m² = CHF 149.– (Abo CHF 123.75), 200 m² = CHF 198.– (Abo CHF 165.–), 250 m² = CHF 248.– (Abo CHF 206.25). Bei Plus und Complete gilt dieselbe Rechnung mit deren Grundpreis. Zusätzliche Reinigungszeit berechnen wir nur dann, wenn sie tatsächlich gebraucht wird.",
     keywords: [
       "150", "200", "250", "300", "quadratmeter", "qm", "m2", "groesser", "gross",
       "grosses buero", "flaeche", "staffel", "aufschlag", "mehr flaeche", "berechnung",
@@ -85,15 +85,16 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
   {
     id: "preis-pakete",
     category: "preis",
-    status: "entwurf",
+    status: "bestaetigt",
     question: "Was ist der Unterschied zwischen Essential, Plus und Complete?",
     answer:
-      "Office Essential ist der Grundpreis: bis 100 m², eine Stunde, alle Standardarbeiten. Office Plus nimmt Fenster und Teppichflächen dazu, Office Complete zusätzlich den Geschirr- und Küchenservice. Für Plus und Complete nennen wir keinen Onlinepreis, weil er von Ihrer Fläche und vom Umfang abhängt — sagen Sie uns kurz, worum es geht, dann rechnen wir es aus.",
+      "Office Essential (CHF 99.– bis 100 m²) ist der Grundumfang: Böden, Arbeitsflächen, ein Sanitärbereich, Küchenzeile, Abfall, Türgriffe. Office Plus (CHF 139.–) legt gründlichere Sanitärreinigung, Küchenfronten und Spüle, Kaffeemaschine aussen, Glastüren, stärkere Oberflächenreinigung und zusätzliche Detailreinigung dazu — das ist das meistgewählte Paket. Office Complete (CHF 179.–) nimmt zusätzlich Innenfenster, Kühlschrank aussen, Mikrowelle, weitere Detailflächen, intensivere Reinigung und mehr Zeitreserve dazu.",
     keywords: [
       "paket", "pakete", "essential", "plus", "complete", "office", "unterschied",
-      "welches paket", "stufe", "variante", "angebot", "auswahl",
+      "welches paket", "stufe", "variante", "angebot", "auswahl", "139", "179",
+      "beliebt", "empfehlung",
     ],
-    action: { label: "Angebot anfragen", href: "/kontakt" },
+    action: { label: "Pakete vergleichen", href: "/preis" },
   },
   {
     id: "preis-bedingungen",
@@ -132,24 +133,55 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Was kostet die Fensterreinigung?",
     answer:
-      "Fenster sind nicht im Grundpreis enthalten, weder einzeln noch im Abo. Der Preis hängt von Anzahl, Grösse und Erreichbarkeit ab — für Innen- und Aussenfenster — sagen Sie uns kurz, worum es geht, dann bekommen Sie einen Festpreis. Fensterreinigung lässt sich einzeln buchen oder fest ins Abo aufnehmen.",
-    keywords: ["fenster", "scheiben", "glas", "fensterputzen", "fensterreinigung", "rahmen"],
-    action: { label: "Fensterpreis anfragen", href: "/kontakt" },
+      "Wir rechnen nach Glasfläche: innen CHF 4.50 pro m² Glas, innen und aussen CHF 7.50 pro m² Glas. Im Paket Office Complete sind die Innenfenster bzw. eine definierte Glasfläche bereits enthalten. Bei schwer erreichbaren Fenstern melden wir uns vorher, statt Sie mit einem Aufschlag zu überraschen.",
+    keywords: [
+      "fenster", "scheiben", "glas", "fensterputzen", "fensterreinigung", "rahmen",
+      "innenfenster", "aussenfenster", "glasflaeche", "verglasung",
+    ],
+    action: { label: "Fenster berechnen", href: "/preis" },
   },
 
   {
     id: "preis-optionen",
     category: "preis",
     status: "bestaetigt",
-    question: "Reinigen Sie auch Teppiche oder machen Sie das Geschirr?",
+    question: "Was kosten die Zusatzleistungen?",
     answer:
-      "Beides gibt es als Option zum Grundpreis dazu: Teppich-Tiefenreinigung maschinell für textile Flächen, und den Geschirr- & Küchenservice für Büros mit regelmässigem Küchenbetrieb. Preise nennen wir nach Fläche und Aufwand — online steht dafür bewusst keine Zahl, die dann doch nicht stimmt.",
+      "Pro Reinigung dazubuchbar: weiterer WC-/Sanitärbereich CHF 19.90, Küchenzeile CHF 14.90, Geschirr abwaschen CHF 9.90, Kühlschrank innen CHF 14.90, Kaffeemaschine CHF 9.90, zusätzliche Abfallstation CHF 4.90, intensive Tisch- und Oberflächenreinigung CHF 14.90, Stühle CHF 2.50 pro Stuhl, Desinfektionsreinigung CHF 19.90. Fenster rechnen wir nach Glasfläche, Teppich-Tiefenreinigung nach Fläche auf Anfrage. Was Ihr Paket schon enthält, berechnen wir nicht ein zweites Mal.",
+    keywords: [
+      "zusatz", "zusatzleistung", "zusatzleistungen", "optionen", "dazubuchen",
+      "extra", "extras", "preisliste", "kuehlschrank", "mikrowelle", "kaffeemaschine",
+      "stuehle", "stuhl", "desinfektion", "abfallstation", "oberflaechen",
+      "geschirr", "abwasch", "spuelmaschine", "kuechenzeile",
+    ],
+    action: { label: "Zusatzleistungen rechnen", href: "/preis" },
+  },
+  {
+    id: "preis-teppich",
+    category: "preis",
+    status: "bestaetigt",
+    question: "Reinigen Sie auch Teppiche?",
+    answer:
+      "Ja, als Teppich-Tiefenreinigung: maschinell, für textile Flächen. Dafür nennen wir online bewusst keinen Preis — er hängt von Fläche und Verschmutzungsgrad ab. Wir schauen es uns an und geben Ihnen einen Festpreis, statt eine Zahl zu raten, die dann doch nicht stimmt.",
     keywords: [
       "teppich", "teppiche", "teppichreinigung", "tiefenreinigung", "textil",
-      "maschinell", "geschirr", "abwasch", "spuelmaschine", "kueche", "kuechenservice",
-      "kaffeemaschine", "optionen", "zusatz", "zusatzleistung", "dazubuchen",
+      "maschinell", "teppichboden", "shampoonieren",
     ],
-    action: { label: "Option anfragen", href: "/kontakt" },
+    action: { label: "Teppichpreis anfragen", href: "/kontakt" },
+  },
+  {
+    id: "preis-haeufigkeit",
+    category: "preis",
+    status: "bestaetigt",
+    question: "Wie oft kommen Sie und was kostet das im Monat?",
+    answer:
+      "Der Paketpreis gilt pro Reinigung. Sie entscheiden, wie oft wir im Monat kommen: einmal, zweimal, dreimal oder viermal. Bei Office Essential und 100 m² sind das CHF 99.–, CHF 198.–, CHF 297.– oder CHF 396.– im Monat; im 12-Monats-Abo CHF 82.50 pro Reinigung, also CHF 330.– bei vier Terminen. Einmalige Reinigungen sind möglich, aber ohne Aborabatt.",
+    keywords: [
+      "wie oft", "haeufigkeit", "monatlich", "woechentlich", "pro monat", "termine",
+      "zweimal", "dreimal", "viermal", "jede woche", "alle zwei wochen", "rhythmus",
+      "turnus", "regelmaessig", "einmalig", "einmal",
+    ],
+    action: { label: "Monatspreis rechnen", href: "/preis" },
   },
 
   // ---------- Leistung ----------
@@ -159,7 +191,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Was ist im Preis enthalten?",
     answer:
-      "Böden saugen, Hartböden feucht wischen, freie Schreibtisch- und Arbeitsflächen, sichtbare Oberflächen, Türgriffe und Lichtschalter, Abfalleimer, ein Sanitärbereich, kleine Büroküche oder Küchenzeile sowie Spiegel und zugängliche Glasflächen. Reinigungsmittel und Geräte bringen wir mit. Separat berechnet werden Fensterreinigung, Teppich-Tiefenreinigung und der Geschirr- & Küchenservice.",
+      "In jedem Paket: Böden saugen, Hartböden feucht wischen, freie Schreibtisch- und Arbeitsflächen, sichtbare Oberflächen, Türgriffe und Lichtschalter, Abfalleimer, ein Sanitärbereich, kleine Büroküche oder Küchenzeile sowie Spiegel und zugängliche Glasflächen. Reinigungsmittel und Geräte bringen wir mit. Office Plus und Complete legen mehr dazu, alles Übrige gibt es als Zusatzleistung mit eigenem Preis.",
     keywords: [
       "inklusive", "enthalten", "leistung", "umfang", "was macht ihr", "putzmittel",
       "material", "geraete", "dabei", "staubsaugen", "wischen", "wc", "abfall",
@@ -174,7 +206,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Reinigen Sie Büros?",
     answer:
-      "Ja, Büro- und Gewerberäume sind unser Schwerpunkt. Der Standardablauf — Böden, Arbeitsflächen, Sanitärbereich, Küchenzeile, Abfall, Türgriffe und Lichtschalter — ist genau darauf zugeschnitten. Bis 100 m² CHF 99.–, im Abo CHF 82.50; darüber nach Fläche.",
+      "Ja, Büro- und Gewerberäume sind unser Schwerpunkt. Der Grundumfang — Böden, Arbeitsflächen, Sanitärbereich, Küchenzeile, Abfall, Türgriffe und Lichtschalter — ist genau darauf zugeschnitten. Bis 100 m² kostet Office Essential CHF 99.– pro Reinigung, im Abo CHF 82.50; Plus und Complete gehen darüber hinaus.",
     keywords: [
       "buero", "gewerbe", "firma", "unternehmen", "geschaeft", "praxis", "kanzlei",
       "gewerblich", "arbeitsplatz", "raeumlichkeiten",
@@ -187,7 +219,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "entwurf",
     question: "Reinigen Sie auch Privatwohnungen?",
     answer:
-      "Ja, zum selben Flächenpreis wie Büros: bis 100 m² CHF 99.–, darüber CHF 0.99 pro m². Sagen Sie uns die Fläche, dann rechnen wir es Ihnen aus.",
+      "Ja, zum selben Paketpreis wie Büros: Office Essential kostet bis 100 m² CHF 99.– pro Reinigung, darüber CHF 0.99 pro m². Sagen Sie uns die Fläche, dann rechnen wir es Ihnen aus.",
     keywords: ["wohnung", "privat", "zuhause", "haus", "privatwohnung", "daheim"],
     action: { label: "Preis berechnen", href: "/preis" },
   },

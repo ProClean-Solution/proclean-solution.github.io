@@ -387,5 +387,27 @@ body {
 .offer-add__inner {
   display: block;
   min-height: 0;
+  /*
+    Nötig für den 0fr-Trick — schneidet aber auch seitlich ab. In der
+    schmalen Handyspalte lief "Stärkere Oberflächenreinigung" deshalb über
+    den Rand und wurde mitten im Wort gekappt. Deutsche Komposita brauchen
+    hier eine Trennung: `hyphens: auto` greift dank lang="de", und
+    `break-word` fängt ab, was sich nicht trennen lässt.
+  */
   overflow: hidden;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/*
+  Auf dem Handy trägt die Paketmarke an jeder Zeile nichts bei, solange die
+  Karte scrollgesteuert wächst: der Kopf sagt ohnehin, in welchem Paket man
+  gerade ist, und die Zeilen tauchen genau dann auf. Im Ruhezustand, wo alle
+  zwölf Zeilen gleichzeitig dastehen, bleibt sie stehen — dort ist sie das
+  Einzige, was die Stufen auseinanderhält.
+*/
+@media (max-width: 639px) {
+  .offer-card[data-aktiv] .offer-add__tag {
+    display: none;
+  }
 }
