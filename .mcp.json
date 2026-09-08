@@ -6,7 +6,13 @@
     },
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest", "--isolated"]
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--isolated",
+        "--browser",
+        "chromium"
+      ]
     }
   }
 }
