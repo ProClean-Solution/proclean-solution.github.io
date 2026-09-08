@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { INCLUDED_SUMMARY } from "@/lib/pricing/catalog";
 import { RevealLines } from "./reveal";
 
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
@@ -136,7 +137,7 @@ export function CleanSweep() {
             Vorher — Büro nach einer Arbeitswoche
           </p>
           <p className="sweep-after col-start-1 row-start-1 font-semibold text-[var(--accent)]">
-            Nachher — Staubsaugen, Wischen, Nasszellen, Abfall, Tische, Türgriffe
+            Nachher — {INCLUDED_SUMMARY}
           </p>
         </div>
       </div>

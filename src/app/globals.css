@@ -143,6 +143,28 @@ body {
   --accent: #d9a93a;
   background: var(--stage-bg);
   color: var(--stage-fg);
+
+  /*
+    Die Bühne setzt auch die Theme-Token neu, nicht nur ihre eigenen.
+
+    Sonst behält jede Komponente, die man daraufstellt, die hellen Werte —
+    der Assistent stand als weisse Kiste auf schwarzem Grund. Wer eine
+    Komponente auf die Bühne stellt, soll nichts umschreiben müssen.
+  */
+  --card: color-mix(in oklch, var(--stage-fg) 5%, var(--stage-bg));
+  --card-foreground: var(--stage-fg);
+  --popover: color-mix(in oklch, var(--stage-fg) 7%, var(--stage-bg));
+  --popover-foreground: var(--stage-fg);
+  --background: var(--stage-bg);
+  --foreground: var(--stage-fg);
+  --muted: color-mix(in oklch, var(--stage-fg) 8%, var(--stage-bg));
+  --muted-foreground: var(--stage-dim);
+  --border: var(--stage-line);
+  --input: color-mix(in oklch, var(--stage-fg) 18%, transparent);
+  --ring: var(--accent);
+  --primary: var(--stage-fg);
+  --primary-foreground: var(--stage-bg);
+  --accent-foreground: #0c0a09;
 }
 
 /* Liquid Glass. Blur nur hier, nicht flächendeckend — es kostet GPU. */
@@ -409,5 +431,103 @@ body {
 @media (max-width: 639px) {
   .offer-card[data-aktiv] .offer-add__tag {
     display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Der Abspann (cinematic-footer.tsx)
+
+   Tiefe aus Perspektive, nicht aus WebGL: der Boden ist eine Ebene, die per
+   `rotateX` in die Ferne kippt. Das Raster darauf ist ein sich wiederholender
+   Verlauf — es wird also nichts gezeichnet, was der Compositor nicht ohnehin
+   kann, und die Bewegung bleibt eine reine Transformation.
+--------------------------------------------------------------------------- */
+
+.footer-stage {
+  /* Eigener Grund: der Boden verläuft nach oben ins Nichts, darunter darf
+     nichts von der Seitenfarbe durchblitzen. */
+  background:
+    radial-gradient(120% 80% at 50% 100%, color-mix(in oklch, var(--accent) 10%, transparent), transparent 62%),
+    var(--stage-bg);
+}
+
+.footer-floor {
+  perspective: 420px;
+  perspective-origin: 50% 0%;
+  /*
+    Der Horizont verschwindet, statt als Kante zu enden — und der Boden
+    bleibt unter dem Text. Zu weit oben liefen die Fluchtlinien quer durch
+    die Adresse und die Wortmarke.
+  */
+  mask-image: linear-gradient(to bottom, transparent, #000 46%, #000 86%, transparent);
+}
+
+/* Die Ebene, die GSAP bewegt. Sie trägt selbst keine Kippung — sonst
+   überschriebe GSAP sie beim ersten Frame. */
+.footer-plane {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.footer-grid {
+  position: absolute;
+  top: 0;
+  right: -60%;
+  bottom: -90%;
+  left: -60%;
+  transform: rotateX(74deg);
+  transform-origin: 50% 0%;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      color-mix(in oklch, var(--stage-fg) 11%, transparent) 0 1px,
+      transparent 1px 90px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--stage-fg) 11%, transparent) 0 1px,
+      transparent 1px 90px
+    );
+  /* Nach hinten ausblendend: die Linien laufen in die Ferne aus, statt an
+     einer harten Kante zu enden. */
+  mask-image: linear-gradient(to bottom, transparent, #000 26%, #000 70%, transparent);
+}
+
+/*
+  Der Lichtstreifen läuft IN der Schrift, nicht darüber.
+
+  `--sheen` verschiebt die Position des Verlaufs; GSAP animiert nur diese
+  eine Zahl. Ohne `background-clip: text` bliebe die Schrift unsichtbar,
+  deshalb bekommt sie ihre Farbe erst innerhalb der Abfrage.
+*/
+.footer-mark {
+  --sheen: 128%;
+}
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  @media (prefers-reduced-motion: no-preference) {
+    .footer-mark .footer-line {
+      /*
+        Die Grundfarbe kommt als background-COLOR, nicht als Verlauf: sie
+        wird von `background-clip: text` genauso beschnitten und füllt
+        alles, was der Streifen gerade nicht überdeckt. Ohne sie war die
+        Schrift überall dort unsichtbar, wo der Verlauf nicht hinreicht —
+        also fast überall.
+      */
+      background-color: var(--stage-fg);
+      background-image: linear-gradient(
+        100deg,
+        transparent 38%,
+        color-mix(in oklch, var(--accent) 80%, white) 50%,
+        transparent 62%
+      );
+      background-size: 240% 100%;
+      background-position: var(--sheen) 0;
+      background-repeat: no-repeat;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
   }
 }

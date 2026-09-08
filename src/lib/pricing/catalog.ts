@@ -131,6 +131,15 @@ export const INCLUDED_TASKS = [
 ] as const;
 
 /**
+ * Dieselbe Liste in einer Zeile, für Stellen mit wenig Platz.
+ *
+ * Steht bewusst hier neben INCLUDED_TASKS statt im Markup: die Beschriftung
+ * des Wischs trug monatelang noch die alte Leistungsliste ("Nasszellen,
+ * Tische"), weil sie an einer zweiten Stelle von Hand gepflegt wurde.
+ */
+export const INCLUDED_SUMMARY = "Böden, Arbeitsflächen, Sanitär, Küche, Abfall, Türgriffe";
+
+/**
  * Der Kleingedruckte-Satz, wörtlich nach Florijan. Steht überall dort, wo eine
  * Zahl steht — der Preis gilt nicht bedingungslos.
  */

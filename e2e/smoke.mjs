@@ -423,6 +423,11 @@ check(
   "Leistungsumfang wird aufgezählt",
   (await frage("was ist inklusive")).includes("Türgriffe"),
 );
+// Die Beschriftung des Wischs trug einmal eine zweite, veraltete Leistungsliste.
+check(
+  "Der Wisch nennt dieselben Leistungen wie der Katalog",
+  (await page.locator(".sweep-after").innerText()).includes("Sanitär"),
+);
 check(
   "Fensterpreis wird nach Glasfläche genannt",
   (await frage("was kostet fensterreinigung")).includes("4.50"),
@@ -465,6 +470,68 @@ check(
   "Telefonnummer ist anklickbar hinterlegt",
   (await page.locator('a[href^="tel:+41762500599"]').count()) > 0,
 );
+
+// ---------- Abspann ----------
+await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+await page.waitForTimeout(1400);
+
+const abspann = await page.evaluate(() => {
+  const f = document.querySelector("footer");
+  const zeile = f?.querySelector(".footer-line");
+  if (!f || !zeile) return null;
+  const cs = getComputedStyle(zeile);
+  return {
+    hoehe: Math.round(f.getBoundingClientRect().height),
+    farbe: cs.color,
+    grundfarbe: cs.backgroundColor,
+    clip: cs.webkitBackgroundClip || cs.backgroundClip,
+    raster: !!f.querySelector(".footer-grid"),
+    tel: f.querySelectorAll('a[href^="tel:"]').length,
+    mail: f.querySelectorAll('a[href^="mailto:"]').length,
+  };
+});
+check("Der Abspann steht", abspann !== null && abspann.hoehe > 600, `${abspann?.hoehe}px`);
+check("Telefon und E-Mail stehen im Abspann", abspann.tel > 0 && abspann.mail > 0);
+check("Der Boden läuft in die Tiefe", abspann.raster);
+
+/*
+  Die Wortmarke wird auf ihren eigenen Hintergrund beschnitten, damit der
+  Lichtstreifen IN der Schrift laufen kann. Fehlt dann die Grundfarbe, ist
+  der Text unsichtbar — genau das war er beim ersten Versuch.
+*/
+const markeBeschnitten = abspann.clip === "text";
+check(
+  "Die Wortmarke ist sichtbar, nicht nur durchsichtig beschnitten",
+  !markeBeschnitten || abspann.grundfarbe !== "rgba(0, 0, 0, 0)",
+  `clip=${abspann.clip} color=${abspann.farbe} bg=${abspann.grundfarbe}`,
+);
+
+// Der Assistent steht auf der Buehne und muss ihre Farben uebernommen haben,
+// nicht die hellen Kartenwerte des Themes.
+const assistentDunkel = await page.evaluate(() => {
+  const el = document.querySelector("section[aria-label='Fragen und Antworten']");
+  /*
+    Ueber ein Canvas statt per Textvergleich: die Farbe steht als
+    `color-mix(...)` in der Regel und wird je nach Browser als oklab, oklch
+    oder color(srgb ...) berechnet. Ein Zahlenparser auf dem String las
+    daraus Helligkeit 60942.
+  */
+  const c = document.createElement("canvas");
+  c.width = c.height = 1;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = getComputedStyle(el).backgroundColor;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+  return { helligkeit: (r + g + b) / 3 };
+});
+check(
+  "Der Assistent übernimmt die Farben der Bühne",
+  assistentDunkel.helligkeit < 80,
+  `Helligkeit ${Math.round(assistentDunkel.helligkeit)}`,
+);
+
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.waitForTimeout(300);
 
 // ---------- Technik ----------
 check("Keine Konsolenfehler", consoleErrors.length === 0, consoleErrors.slice(0, 2).join(" | "));
