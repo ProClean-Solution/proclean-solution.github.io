@@ -1,6 +1,6 @@
 # Live-Vorschau. Die Adresse ergibt sich aus dem Ort des Repositorys:
-#   Riantetova/ProClean-Solution              -> riantetova.github.io/ProClean-Solution/
-#   procleansolution/procleansolution.github.io -> procleansolution.github.io/
+#   Riantetova/ProClean-Solution                    -> riantetova.github.io/ProClean-Solution/
+#   ProCleanSolution/procleansolution.github.io     -> procleansolution.github.io/
 # Der Build leitet den Basispfad selbst daraus ab.
 #
 # Die Seite läuft vollständig im Browser — kein Server, keine API-Routen,
@@ -20,8 +20,8 @@
 name: Live-Vorschau
 
 env:
-  # Eigene Domain. Leer lassen, solange keine da ist — dann läuft die Seite
-  # unter riantetova.github.io/ProClean-Solution/.
+  # Eigene Domain. Leer lassen, solange keine da ist — dann ergibt sich die
+  # Adresse aus dem Ort des Repositorys (siehe oben).
   #
   # Sobald hier z. B. "procleansolution.ch" steht, passiert zweierlei:
   # die Seite wird für die Wurzel gebaut statt für einen Unterpfad, und es
@@ -96,6 +96,7 @@ jobs:
           fi
 
           echo "Basispfad: '${basis}'  Adresse: ${adresse}  (${grund})"
+          echo "ADRESSE=${adresse}" >> "$GITHUB_ENV"
           # Die Adresse geht mit in den Build: kanonischer Verweis, Open Graph,
           # Sitemap und strukturierte Daten brauchen sie absolut.
           STATIC_EXPORT=1 PAGES_BASE="$basis" NEXT_PUBLIC_SITE_URL="$adresse" npx next build
@@ -126,4 +127,7 @@ jobs:
           rm -f "$IDX"
 
           git push -f origin "$COMMIT:refs/heads/gh-pages"
-          echo "Veröffentlicht: https://riantetova.github.io/ProClean-Solution/"
+          # Die Adresse aus dem Bauschritt, nicht eine fest eingetragene:
+          # nach einem Umzug stimmte sie sonst nicht mehr.
+          echo "Veröffentlicht: ${ADRESSE}"
+          echo "::notice::Vorschau aktualisiert: ${ADRESSE}"

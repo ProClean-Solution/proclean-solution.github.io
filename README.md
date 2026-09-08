@@ -27,7 +27,7 @@ Repositorys abgeleitet:
 | Repository | Adresse | Basispfad |
 |---|---|---|
 | `Riantetova/ProClean-Solution` | riantetova.github.io/ProClean-Solution/ | `/ProClean-Solution` |
-| `procleansolution/procleansolution.github.io` | procleansolution.github.io/ | – |
+| `ProCleanSolution/procleansolution.github.io` | procleansolution.github.io/ | – |
 | beliebig, mit `PAGES_DOMAIN` | die eigene Domain | – |
 
 Ein Umzug oder eine Umbenennung braucht deshalb keine Codeänderung. Wichtig
@@ -49,7 +49,7 @@ Beim Registrar sind dazu diese Einträge nötig:
 | A | @ | 185.199.109.153 |
 | A | @ | 185.199.110.153 |
 | A | @ | 185.199.111.153 |
-| CNAME | www | riantetova.github.io |
+| CNAME | www | `<kontoname>.github.io` |
 
 HTTPS stellt GitHub danach selbst aus („Enforce HTTPS" in Settings → Pages).
 
