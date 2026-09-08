@@ -585,3 +585,25 @@ body {
     linear-gradient(to bottom, rgb(255 255 255 / 0.85), transparent 26%),
     linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.9) 47%, transparent 64%);
 }
+
+/*
+  Die Paketübersicht ist zugleich die Steuerung der Karte darunter. Welches
+  Paket die Karte gerade zeigt, markiert `data-aktiv` — gesetzt aus derselben
+  Scrollberechnung, die auch die Karte treibt, damit beide nie auseinanderlaufen.
+*/
+.offer-pick {
+  cursor: pointer;
+  transition:
+    border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.4s ease;
+}
+.offer-pick[data-aktiv] {
+  border-color: color-mix(in oklch, var(--accent) 55%, transparent);
+  transform: translateY(-3px);
+}
+/*
+  Bewusst KEIN Ausblenden der übrigen zwei: ohne laufende Animation ist kein
+  Paket aktiv, und drei halb blasse Karten wären dann ein Fehler statt einer
+  Markierung. Die aktive Karte tritt hervor, die anderen bleiben normal.
+*/

@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { business } from "@/config/business";
 import {
   BASE_SQM,
   CONDITIONS_NOTE,
@@ -44,6 +45,7 @@ export function OfficeOffer() {
   const karte = useRef<HTMLDivElement>(null);
   const balken = useRef<HTMLSpanElement>(null);
   const zeilen = useRef<HTMLLIElement[]>([]);
+  const knoepfe = useRef<HTMLButtonElement[]>([]);
 
   /**
    * Ohne JavaScript, bei reduzierter Bewegung und vor dem ersten Effect stehen
@@ -97,6 +99,13 @@ export function OfficeOffer() {
             zeile.style.setProperty("--o", v.toFixed(3));
           }
 
+          // Die Übersicht oben zeigt mit, wo man in der Karte gerade steht.
+          knoepfe.current.forEach((knopf, i) => {
+            if (!knopf) return;
+            if (Math.round(stufe) === i) knopf.setAttribute("data-aktiv", "");
+            else knopf.removeAttribute("data-aktiv");
+          });
+
           if (balken.current) {
             balken.current.style.transform = `scaleX(${Math.max(0.04, self.progress)})`;
           }
@@ -116,6 +125,30 @@ export function OfficeOffer() {
     };
   }, [aktiv]);
 
+  /**
+   * Fährt die Karte auf ein bestimmtes Paket.
+   *
+   * Die Position wird aus der Bahn gerechnet, nicht gespeichert: ihre Höhe
+   * steht in Bildschirmhöhen im Markup und ändert sich mit dem Viewport.
+   * Ohne aktive Animation gibt es keine Bahn — dann steht die Karte ohnehin
+   * vollständig da und der Klick springt einfach zu ihr.
+   */
+  function zeigePaket(i: number) {
+    const el = bahn.current;
+    if (!el) return;
+    const box = el.getBoundingClientRect();
+    const oben = box.top + window.scrollY;
+    const ziel = aktiv
+      ? oben + ((box.height - window.innerHeight) * i) / (PACKAGES.length - 1)
+      : oben;
+    window.scrollTo({
+      top: Math.round(ziel),
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  }
+
   const essential = PACKAGES[0];
 
   return (
@@ -133,46 +166,72 @@ export function OfficeOffer() {
           Reinigungszeit. Wie oft im Monat wir kommen, entscheiden Sie danach.
         </p>
 
-        {/* Die drei Preise nebeneinander, bevor die Karte sie einzeln erklärt. */}
+        {/*
+          Die drei Preise nebeneinander — und zugleich die Steuerung für die
+          Karte darunter.
+
+          Als reine Übersicht standen hier dieselben Zahlen, die die Karte
+          zwei Zentimeter tiefer noch einmal nennt. Als Schaltflächen sind sie
+          der Weg zum jeweiligen Paket: ein Klick fährt die Karte dorthin,
+          und beim Scrollen zeigt die Übersicht mit, wo man gerade steht.
+        */}
         <ol className="mt-12 grid gap-4 sm:grid-cols-3">
-          {PACKAGES.map((paket) => (
-            <li
-              key={paket.id}
-              className={cn(
-                "glass relative rounded-2xl p-6",
-                paket.beliebt && "ring-1 ring-[var(--accent)]",
-              )}
-            >
+          {PACKAGES.map((paket, i) => (
+            <li key={paket.id} className="relative">
               {paket.beliebt ? (
-                <span className="absolute -top-2.5 left-6 rounded-full bg-[var(--accent)] px-3 py-0.5 text-[0.62rem] font-bold tracking-widest text-black uppercase">
+                <span className="pointer-events-none absolute -top-2.5 left-6 z-10 rounded-full bg-[var(--accent)] px-3 py-0.5 text-[0.62rem] font-bold tracking-widest text-black uppercase">
                   Beliebt
                 </span>
               ) : null}
-              <p className="text-[0.7rem] font-semibold tracking-[0.2em] text-[var(--stage-dim)] uppercase">
-                {paket.label.replace("Office ", "")}
-              </p>
-              <p className="mt-3 text-3xl font-black tracking-tight tabular-nums">
-                {formatMoney(paket.baseCents)}
-              </p>
-              <p className="mt-1.5 text-sm text-[var(--stage-dim)]">
-                im Abo{" "}
-                <span className="font-semibold text-[var(--accent)] tabular-nums">
-                  {formatMoney(packagePriceCents(BASE_SQM, paket.id, "abo12"))}
+              <button
+                type="button"
+                ref={(el) => {
+                  if (el) knoepfe.current[i] = el;
+                }}
+                onClick={() => zeigePaket(i)}
+                aria-label={`${paket.label} ansehen`}
+                className={cn(
+                  "offer-pick glass glass-hover block w-full rounded-2xl p-6 text-left",
+                  paket.beliebt && "ring-1 ring-[var(--accent)]",
+                )}
+              >
+                <span className="block text-[0.7rem] font-semibold tracking-[0.2em] text-[var(--stage-dim)] uppercase">
+                  {paket.label.replace("Office ", "")}
                 </span>
-              </p>
+                <span className="mt-3 block text-3xl font-black tracking-tight tabular-nums">
+                  {formatMoney(paket.baseCents)}
+                </span>
+                <span className="mt-1.5 block text-sm text-[var(--stage-dim)]">
+                  im Abo{" "}
+                  <span className="font-semibold text-[var(--accent)] tabular-nums">
+                    {formatMoney(packagePriceCents(BASE_SQM, paket.id, "abo12"))}
+                  </span>
+                </span>
+              </button>
             </li>
           ))}
         </ol>
 
         {/* Der einzige Unterschied zwischen den beiden Zahlen: ob man sich
             bindet. Steht als Satz da, nicht als Rabattbanner. */}
-        <dl className="mt-8 grid max-w-2xl gap-x-10 gap-y-3 text-sm sm:grid-cols-2">
+        {/* Als Fussnote gesetzt, nicht als dritte Spalte: unter einem
+            Dreierraster hing die zweispaltige Liste sonst schief. */}
+        <dl className="mt-8 grid gap-x-10 gap-y-3 border-t border-[var(--stage-line)] pt-6 text-sm sm:grid-cols-3">
           {Object.values(TARIFFS).map((t) => (
             <div key={t.id}>
               <dt className="font-semibold">{t.label}</dt>
               <dd className="mt-1 text-[var(--stage-dim)]">{t.description}</dd>
             </div>
           ))}
+          {/* Dritte Spalte, damit das Raster nicht mit einer Lücke endet — und
+              weil genau hier die Frage aufkommt, worauf sich die Zahl bezieht. */}
+          <div>
+            <dt className="font-semibold">Wofür der Preis gilt</dt>
+            <dd className="mt-1 text-[var(--stage-dim)]">
+              Pro Reinigung, bis {BASE_SQM} m².{" "}
+              {business.vatRegistered ? "Inklusive MwSt." : "Preis ohne MwSt."}
+            </dd>
+          </div>
         </dl>
       </div>
 

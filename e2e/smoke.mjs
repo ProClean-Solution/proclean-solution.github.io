@@ -139,6 +139,29 @@ check(
   `kopf=${mitte.kopf.join("/")}`,
 );
 
+// Die Uebersicht steuert die Karte: ein Klick auf Complete fuehrt dorthin.
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.waitForTimeout(400);
+await page.getByRole("button", { name: "Office Complete ansehen" }).click();
+await page.waitForTimeout(1400);
+const nachKlick = await page.evaluate(() => {
+  const k = document.querySelector(".offer-card");
+  return {
+    kopf: [0, 1, 2].map((i) => parseFloat(getComputedStyle(k).getPropertyValue(`--kopf-${i}`))),
+    markiert: [...document.querySelectorAll(".offer-pick")].map((b) => b.hasAttribute("data-aktiv")),
+  };
+});
+check(
+  "Ein Klick auf ein Paket führt die Karte dorthin",
+  nachKlick.kopf[2] > 0.85,
+  `kopf=${nachKlick.kopf.join("/")}`,
+);
+check(
+  "Und die Übersicht markiert genau dieses Paket",
+  nachKlick.markiert.filter(Boolean).length === 1 && nachKlick.markiert[2],
+  JSON.stringify(nachKlick.markiert),
+);
+
 const ende = await karteBei(1);
 check(
   "Am Ende steht Office Complete",
