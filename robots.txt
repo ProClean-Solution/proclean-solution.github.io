@@ -1,0 +1,4 @@
+User-Agent: *
+Allow: /
+
+Sitemap: https://riantetova.github.io/ProClean-Solution/sitemap.xml

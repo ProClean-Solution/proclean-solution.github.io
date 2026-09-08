@@ -1,0 +1,3 @@
+:HL["/ProClean-Solution/_next/static/chunks/2n8md690u5_9i.css","style"]
+:HL["/ProClean-Solution/_next/static/media/fba5a26ea33df6a3-s.p.18rizl4rsrl42.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"l-HT7yXyPPDPPr1r6BlCg"}
