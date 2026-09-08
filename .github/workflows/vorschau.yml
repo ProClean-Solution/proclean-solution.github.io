@@ -16,6 +16,16 @@
 
 name: Live-Vorschau
 
+env:
+  # Eigene Domain. Leer lassen, solange keine da ist — dann läuft die Seite
+  # unter riantetova.github.io/ProClean-Solution/.
+  #
+  # Sobald hier z. B. "procleansolution.ch" steht, passiert zweierlei:
+  # die Seite wird für die Wurzel gebaut statt für einen Unterpfad, und es
+  # wird eine CNAME-Datei mitgeliefert, an der GitHub die Domain erkennt.
+  # Beides muss zusammen passen, sonst lädt die Seite ohne Stylesheet.
+  PAGES_DOMAIN: ""
+
 on:
   push:
     branches: [claude/emil-kowalski-skill-design-1tr9if]
@@ -53,11 +63,21 @@ jobs:
         run: npm run typecheck
 
       - name: Statische Version bauen
-        run: npx next build
-        env:
-          STATIC_EXPORT: "1"
-          # Projektseiten liegen unter /<Repositoryname>/.
-          PAGES_BASE: /ProClean-Solution
+        run: |
+          set -euo pipefail
+          if [ -n "$PAGES_DOMAIN" ]; then
+            # Eigene Domain: die Seite liegt an der Wurzel, kein Präfix.
+            export PAGES_BASE=""
+          else
+            # Projektseiten liegen unter /<Repositoryname>/.
+            export PAGES_BASE="/ProClean-Solution"
+          fi
+          echo "Basispfad: '${PAGES_BASE}'"
+          STATIC_EXPORT=1 npx next build
+          if [ -n "$PAGES_DOMAIN" ]; then
+            echo "$PAGES_DOMAIN" > out/CNAME
+            echo "CNAME geschrieben: $PAGES_DOMAIN"
+          fi
 
       - name: Veröffentlichen
         run: |

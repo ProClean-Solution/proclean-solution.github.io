@@ -19,6 +19,27 @@ Jeder Push auf den Standardbranch baut und veröffentlicht neu; Tests und
 Typprüfung laufen davor. Möglich ist das, weil die Seite vollständig im
 Browser läuft — kein Server, keine API-Routen, keine Server Actions.
 
+### Eigene Domain
+
+Im Workflow steht ganz oben `PAGES_DOMAIN`. Sobald dort eine Domain
+eingetragen ist, baut der nächste Lauf für die Wurzel statt für einen
+Unterpfad und legt die passende `CNAME`-Datei an. Beides muss zusammen
+passen — mit Domain, aber altem Basispfad lädt die Seite ohne Stylesheet.
+
+Beim Registrar sind dazu diese Einträge nötig:
+
+| Typ | Name | Wert |
+|---|---|---|
+| A | @ | 185.199.108.153 |
+| A | @ | 185.199.109.153 |
+| A | @ | 185.199.110.153 |
+| A | @ | 185.199.111.153 |
+| CNAME | www | riantetova.github.io |
+
+HTTPS stellt GitHub danach selbst aus („Enforce HTTPS" in Settings → Pages).
+
+### Auslieferung
+
 Veröffentlicht wird über den Branch `gh-pages` — reines Ergebnis, wird bei
 jedem Lauf überschrieben. Dieser Weg wurde gewählt, weil die
 Pages-Deployment-API voraussetzt, dass jemand von Hand
