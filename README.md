@@ -19,11 +19,13 @@ Jeder Push auf den Standardbranch baut und veröffentlicht neu; Tests und
 Typprüfung laufen davor. Möglich ist das, weil die Seite vollständig im
 Browser läuft — kein Server, keine API-Routen, keine Server Actions.
 
-**Einmalig einzuschalten:** Settings → Pages → Build and deployment →
-Source: **GitHub Actions**. Der Workflow-Token darf eine Pages-Seite nicht
-selbst anlegen; diese Berechtigung bleibt bewusst beim Menschen. Danach
-Actions → „Live-Vorschau" → *Run workflow*, oder einfach den nächsten Push
-abwarten.
+Veröffentlicht wird über den Branch `gh-pages` — reines Ergebnis, wird bei
+jedem Lauf überschrieben. Dieser Weg wurde gewählt, weil die
+Pages-Deployment-API voraussetzt, dass jemand von Hand
+Settings → Pages → Source auf „GitHub Actions" umstellt: ein Workflow darf
+eine Pages-Seite nicht selbst anlegen. Beim Anlegen eines `gh-pages`-Branches
+schaltet GitHub die Vorschau bei öffentlichen Repositories dagegen von selbst
+ein. Es ist also kein Handgriff mehr nötig.
 
 Dieselbe Version lokal:
 
