@@ -97,6 +97,92 @@ check("Rückwärtsscrollen fährt den Film zurück", zurueck.clean === 0 && zuru
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForTimeout(400);
 
+// ---------- Angebot: die wachsende Paketkarte ----------
+const karteDa = await page.locator(".offer-card[data-aktiv]").count();
+check("Paketkarte läuft im Scrollmodus", karteDa === 1);
+
+/** Liest den Zustand der Karte an einer Position innerhalb ihrer Bahn. */
+const karteBei = (anteil) =>
+  page.evaluate(async (a) => {
+    const bahn = document.querySelector("[data-offer-track]");
+    const box = bahn.getBoundingClientRect();
+    const oben = box.top + window.scrollY;
+    window.scrollTo(0, Math.round(oben + (box.height - window.innerHeight) * a));
+    await new Promise((r) => setTimeout(r, 400));
+    const karte = document.querySelector(".offer-card");
+    const st = getComputedStyle(karte);
+    const zeilen = [...document.querySelectorAll(".offer-add")];
+    return {
+      kopf: [0, 1, 2].map((i) => parseFloat(st.getPropertyValue(`--kopf-${i}`))),
+      offen: zeilen.map((z) => parseFloat(getComputedStyle(z).opacity)),
+      hoehe: karte.getBoundingClientRect().height,
+      viewport: window.innerHeight,
+    };
+  }, anteil);
+
+const start = await karteBei(0);
+check(
+  "Am Anfang steht Office Essential allein da",
+  start.kopf[0] > 0.9 && start.kopf[1] < 0.1 && start.kopf[2] < 0.1,
+  `kopf=${start.kopf.join("/")}`,
+);
+check(
+  "Und die Zusatzleistungen sind noch zugeklappt",
+  start.offen.every((o) => o < 0.05),
+  `offen=${start.offen.join("/")}`,
+);
+
+const mitte = await karteBei(0.5);
+check(
+  "In der Mitte steht Office Plus",
+  mitte.kopf[1] > 0.85,
+  `kopf=${mitte.kopf.join("/")}`,
+);
+
+const ende = await karteBei(1);
+check(
+  "Am Ende steht Office Complete",
+  ende.kopf[2] > 0.9 && ende.kopf[0] < 0.1,
+  `kopf=${ende.kopf.join("/")}`,
+);
+check(
+  "Und alle Zusatzleistungen sind aufgeklappt",
+  ende.offen.every((o) => o > 0.9),
+  `offen=${ende.offen.join("/")}`,
+);
+check(
+  "Die Karte bleibt beim Wachsen im Bild",
+  ende.hoehe < ende.viewport,
+  `${Math.round(ende.hoehe)}px in ${ende.viewport}px`,
+);
+
+// Zurückscrollen muss die Karte exakt wieder zufahren.
+const zurueckKarte = await karteBei(0);
+check(
+  "Zurückscrollen fährt die Karte wieder zu",
+  zurueckKarte.kopf[0] > 0.9 && zurueckKarte.offen.every((o) => o < 0.05),
+  `kopf=${zurueckKarte.kopf.join("/")} offen=${zurueckKarte.offen.join("/")}`,
+);
+
+// Die Staffel: Zahlen kommen aus der Engine, nicht aus dem Markup.
+const staffel = await page.locator("#angebot table").innerText();
+for (const [flaeche, preis] of [
+  ["100 m²", "99.00"],
+  ["150 m²", "149.00"],
+  ["200 m²", "198.00"],
+  ["250 m²", "248.00"],
+]) {
+  check(`Staffel: ${flaeche} kostet CHF ${preis}`, staffel.includes(preis), flaeche);
+}
+check("Staffel nennt den Abopreis CHF 123.75", staffel.includes("123.75"));
+check(
+  "Der Bedingungssatz steht unter dem Angebot",
+  (await page.locator("#angebot").innerText()).includes("normal verschmutzte"),
+);
+
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.waitForTimeout(400);
+
 // ---------- Rechner ----------
 const preisEl = page.locator("section[aria-label='Preisrechner'] p.text-4xl");
 const parse = (s) => Number(String(s).replace(/[^\d.]/g, ""));
@@ -128,6 +214,20 @@ check(
   proTermin?.trim(),
 );
 await page.locator("#sqm").fill("100");
+await page.waitForTimeout(150);
+
+// 150 m² im Standardtarif: Florijans gerundete Zahl, nicht 148.50
+await page.getByRole("button", { name: /^Standard/ }).click();
+await page.locator("#sqm").fill("150");
+await page.waitForTimeout(200);
+const std150 = (await preisEl.textContent())?.trim();
+check(
+  "150 m² im Standardtarif kosten CHF 149.00 pro Termin",
+  parse(std150) === 149 * 4,
+  `${std150} im Monat`,
+);
+await page.locator("#sqm").fill("100");
+await page.getByRole("button", { name: /Abo 12 Monate/ }).click();
 await page.waitForTimeout(150);
 
 // Fensterreinigung darf keinen Preis erfinden
@@ -179,6 +279,22 @@ check(
   (await frage("was kostet fensterreinigung")).includes("Festpreis"),
 );
 check(
+  "Flächenfrage nennt die Staffel",
+  (await frage("was kostet 200 quadratmeter")).includes("198"),
+);
+check(
+  "Teppichfrage wird nicht mit dem Grundpreis beantwortet",
+  (await frage("reinigen sie auch teppiche")).includes("Teppich-Tiefenreinigung"),
+);
+check(
+  "Frage nach den Paketen wird beantwortet",
+  (await frage("unterschied essential plus complete")).includes("Complete"),
+);
+check(
+  "Frage nach starker Verschmutzung wird ehrlich beantwortet",
+  (await frage("was wenn es sehr dreckig ist")).includes("separat berechnet"),
+);
+check(
   "Themenfremde Frage wird weitergeleitet statt erfunden",
   (await frage("Können Sie mein Auto reparieren?")).includes("nicht sicher beantworten"),
 );
@@ -211,6 +327,26 @@ const beschnitten = await page.evaluate(() =>
     .map((el) => `${el.tagName}: ${el.textContent?.trim().slice(0, 40)}`),
 );
 check("Keine Ueberschrift wird abgeschnitten", beschnitten.length === 0, beschnitten.join(" | "));
+
+// Die Paketkarte wird beim Wachsen hoeher. Auf dem Handy ist der Abstand zum
+// Rand am knappsten — deshalb hier messen, nicht nur am Desktop.
+await page.waitForTimeout(600);
+const karteMobil = await page.evaluate(async () => {
+  const bahn = document.querySelector("[data-offer-track]");
+  if (!bahn) return null;
+  const box = bahn.getBoundingClientRect();
+  window.scrollTo(0, Math.round(box.top + window.scrollY + box.height - window.innerHeight));
+  await new Promise((r) => setTimeout(r, 500));
+  const k = document.querySelector(".offer-card").getBoundingClientRect();
+  return { top: Math.round(k.top), unten: Math.round(k.bottom), vh: window.innerHeight };
+});
+check(
+  "Die ausgewachsene Paketkarte passt aufs Handy",
+  karteMobil !== null && karteMobil.top >= 0 && karteMobil.unten <= karteMobil.vh,
+  karteMobil ? `${karteMobil.top}px bis ${karteMobil.unten}px in ${karteMobil.vh}px` : "keine Karte",
+);
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.waitForTimeout(300);
 await page.screenshot({ path: `${out}/mobil.png` });
 
 // ---------- Reduzierte Bewegung ----------
@@ -231,6 +367,26 @@ check(
 check(
   "Und die Website steht sofort da",
   await page.getByRole("heading", { level: 1 }).isVisible(),
+);
+
+// Ohne Animation muss das Angebot vollstaendig dastehen statt zugeklappt.
+const ruhe = await page.evaluate(() => {
+  const karte = document.querySelector(".offer-card");
+  const zeilen = [...document.querySelectorAll(".offer-add")];
+  return {
+    imScrollmodus: karte?.hasAttribute("data-aktiv") ?? true,
+    kopfzeilen: [...document.querySelectorAll(".offer-head")].filter(
+      (h) => getComputedStyle(h).display !== "none" && h.closest(".grid")?.firstElementChild === h,
+    ).length,
+    zugeklappt: zeilen.filter((z) => z.getBoundingClientRect().height < 4).length,
+    zeilen: zeilen.length,
+  };
+});
+check("Bei reduzierter Bewegung klappt die Paketkarte nicht", !ruhe.imScrollmodus);
+check(
+  "Und alle Zusatzleistungen stehen offen da",
+  ruhe.zeilen > 0 && ruhe.zugeklappt === 0,
+  `${ruhe.zugeklappt} von ${ruhe.zeilen} zugeklappt`,
 );
 
 await browser.close();

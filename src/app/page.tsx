@@ -2,9 +2,9 @@ import { Assistant } from "@/components/ui/assistant";
 import { CleanSweep } from "@/components/ui/clean-sweep";
 import { Hero } from "@/components/ui/hero";
 import { IntroShell } from "@/components/intro/intro-shell";
+import { OfficeOffer } from "@/components/ui/office-offer";
 import { PriceCalculator } from "@/components/ui/price-calculator";
 import { SmoothScroll } from "@/components/ui/smooth-scroll";
-import { Tariffs } from "@/components/ui/tariffs";
 import { business } from "@/config/business";
 
 /*
@@ -29,7 +29,9 @@ export default function Home() {
           <Hero />
         </IntroShell>
         <CleanSweep />
-        <Tariffs />
+        {/* Das Büroangebot in Florijans eigener Reihenfolge: erst der eine
+            Preis, dann die wachsende Paketkarte, dann Fläche und Optionen. */}
+        <OfficeOffer />
 
         <section id="rechner" className="scroll-mt-8 px-5 py-24 sm:py-32">
           <div className="mx-auto max-w-6xl">

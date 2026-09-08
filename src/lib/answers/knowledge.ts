@@ -47,10 +47,11 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Was kostet eine Reinigung?",
     answer:
-      "Wir rechnen nach Zeit: CHF 99.– pro Stunde. Ein Büro mit rund 100 m² schaffen wir in einer Stunde, das sind CHF 99.– pro Termin und CHF 396.– im Monat bei wöchentlicher Reinigung. Wie viele Zimmer das Objekt hat, spielt keine Rolle — nur die Fläche zählt.",
+      "Bis 100 m² kostet eine Reinigung CHF 99.– — das ist eine Stunde Arbeit. Grössere Büros rechnen wir nach Fläche: CHF 0.99 pro m². Also 150 m² = CHF 149.–, 200 m² = CHF 198.–, 250 m² = CHF 248.–. Bei wöchentlicher Reinigung sind 100 m² CHF 396.– im Monat. Wie viele Zimmer das Objekt hat, spielt keine Rolle — nur die Fläche zählt.",
     keywords: [
       "preis", "kosten", "was kostet", "wie teuer", "teuer", "guenstig", "tarif",
       "stundenlohn", "stundensatz", "franken", "chf", "preisliste", "offerte",
+      "quadratmeter", "qm", "m2", "pro quadratmeter", "flaeche", "staffel",
     ],
     action: { label: "Preis berechnen", href: "/preis" },
   },
@@ -60,12 +61,52 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Gibt es einen günstigeren Tarif?",
     answer:
-      "Ja, das Abo mit zwölf Monaten Mindestlaufzeit: CHF 82.50 pro Stunde statt CHF 99.–. Für das 100-m²-Büro sind das CHF 330.– im Monat statt CHF 396.–, also rund 17 Prozent weniger. Nach den zwölf Monaten läuft es monatlich weiter und ist jederzeit kündbar.",
+      "Ja, das Abo mit zwölf Monaten Mindestlaufzeit: CHF 82.50 statt CHF 99.– bis 100 m², darüber CHF 0.825 statt CHF 0.99 pro m². Für das 100-m²-Büro sind das CHF 330.– im Monat statt CHF 396.–, also rund 17 Prozent weniger. 150 m² kosten im Abo CHF 123.75 pro Reinigung, 200 m² CHF 165.–. Nach den zwölf Monaten läuft es monatlich weiter und ist jederzeit kündbar.",
     keywords: [
       "abo", "abonnement", "guenstiger", "rabatt", "vertrag", "laufzeit",
       "mindestlaufzeit", "sparen", "regelmaessig", "dauerauftrag", "binden",
     ],
     action: { label: "Abo berechnen", href: "/preis" },
+  },
+  {
+    id: "preis-flaeche",
+    category: "preis",
+    status: "bestaetigt",
+    question: "Was kostet es bei 150 oder 200 m²?",
+    answer:
+      "Über 100 m² rechnen wir CHF 0.99 pro Quadratmeter, im 12-Monats-Abo CHF 0.825. Konkret: 150 m² = CHF 149.– (Abo CHF 123.75), 200 m² = CHF 198.– (Abo CHF 165.–), 250 m² = CHF 248.– (Abo CHF 206.25). Zusätzliche Reinigungszeit berechnen wir nur dann, wenn sie tatsächlich gebraucht wird.",
+    keywords: [
+      "150", "200", "250", "300", "quadratmeter", "qm", "m2", "groesser", "gross",
+      "grosses buero", "flaeche", "staffel", "aufschlag", "mehr flaeche", "berechnung",
+      "hochrechnen", "pro quadratmeter",
+    ],
+    action: { label: "Eigene Fläche rechnen", href: "/preis" },
+  },
+  {
+    id: "preis-pakete",
+    category: "preis",
+    status: "entwurf",
+    question: "Was ist der Unterschied zwischen Essential, Plus und Complete?",
+    answer:
+      "Office Essential ist der Grundpreis: bis 100 m², eine Stunde, alle Standardarbeiten. Office Plus nimmt Fenster und Teppichflächen dazu, Office Complete zusätzlich den Geschirr- und Küchenservice. Für Plus und Complete nennen wir keinen Onlinepreis, weil er von Ihrer Fläche und vom Umfang abhängt — sagen Sie uns kurz, worum es geht, dann rechnen wir es aus.",
+    keywords: [
+      "paket", "pakete", "essential", "plus", "complete", "office", "unterschied",
+      "welches paket", "stufe", "variante", "angebot", "auswahl",
+    ],
+    action: { label: "Angebot anfragen", href: "/kontakt" },
+  },
+  {
+    id: "preis-bedingungen",
+    category: "preis",
+    status: "bestaetigt",
+    question: "Gilt der Preis immer?",
+    answer:
+      "Der Preis gilt für normal verschmutzte und frei zugängliche Büroflächen. Starke Verschmutzungen, Grundreinigungen, Bauendreinigungen und aussergewöhnlicher Mehraufwand werden separat berechnet. Wenn wir vor Ort sehen, dass mehr nötig ist, sagen wir es vorher — nicht auf der Rechnung.",
+    keywords: [
+      "gilt immer", "festpreis", "verschmutzt", "stark verschmutzt", "dreckig",
+      "sonderfall", "aufschlag", "mehraufwand", "ueberraschung", "nachtraeglich",
+      "versteckte kosten", "zusatzkosten", "bedingungen",
+    ],
   },
   {
     id: "preis-zimmer",
@@ -91,9 +132,24 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Was kostet die Fensterreinigung?",
     answer:
-      "Fenster sind nicht im Stundenpreis enthalten, weder einzeln noch im Abo. Der Preis hängt von Anzahl, Grösse und Erreichbarkeit der Fenster ab — sagen Sie uns kurz, worum es geht, dann bekommen Sie einen Festpreis. Fensterreinigung lässt sich einzeln buchen oder fest ins Abo aufnehmen.",
+      "Fenster sind nicht im Grundpreis enthalten, weder einzeln noch im Abo. Der Preis hängt von Anzahl, Grösse und Erreichbarkeit ab — für Innen- und Aussenfenster — sagen Sie uns kurz, worum es geht, dann bekommen Sie einen Festpreis. Fensterreinigung lässt sich einzeln buchen oder fest ins Abo aufnehmen.",
     keywords: ["fenster", "scheiben", "glas", "fensterputzen", "fensterreinigung", "rahmen"],
     action: { label: "Fensterpreis anfragen", href: "/kontakt" },
+  },
+
+  {
+    id: "preis-optionen",
+    category: "preis",
+    status: "bestaetigt",
+    question: "Reinigen Sie auch Teppiche oder machen Sie das Geschirr?",
+    answer:
+      "Beides gibt es als Option zum Grundpreis dazu: Teppich-Tiefenreinigung maschinell für textile Flächen, und den Geschirr- & Küchenservice für Büros mit regelmässigem Küchenbetrieb. Preise nennen wir nach Fläche und Aufwand — online steht dafür bewusst keine Zahl, die dann doch nicht stimmt.",
+    keywords: [
+      "teppich", "teppiche", "teppichreinigung", "tiefenreinigung", "textil",
+      "maschinell", "geschirr", "abwasch", "spuelmaschine", "kueche", "kuechenservice",
+      "kaffeemaschine", "optionen", "zusatz", "zusatzleistung", "dazubuchen",
+    ],
+    action: { label: "Option anfragen", href: "/kontakt" },
   },
 
   // ---------- Leistung ----------
@@ -103,11 +159,12 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Was ist im Preis enthalten?",
     answer:
-      "Staubsaugen, Wischen, WC und Nasszellen reinigen, Abfalleimer entsorgen, Tische abwischen und Türgriffe desinfizieren. Reinigungsmittel und Geräte bringen wir mit. Fensterreinigung ist der einzige Punkt, der separat berechnet wird.",
+      "Böden saugen, Hartböden feucht wischen, freie Schreibtisch- und Arbeitsflächen, sichtbare Oberflächen, Türgriffe und Lichtschalter, Abfalleimer, ein Sanitärbereich, kleine Büroküche oder Küchenzeile sowie Spiegel und zugängliche Glasflächen. Reinigungsmittel und Geräte bringen wir mit. Separat berechnet werden Fensterreinigung, Teppich-Tiefenreinigung und der Geschirr- & Küchenservice.",
     keywords: [
       "inklusive", "enthalten", "leistung", "umfang", "was macht ihr", "putzmittel",
       "material", "geraete", "dabei", "staubsaugen", "wischen", "wc", "abfall",
-      "muell", "tische", "tuergriffe", "desinfizieren",
+      "muell", "tische", "tuergriffe", "desinfizieren", "boeden", "schreibtisch",
+      "lichtschalter", "sanitaer", "spiegel", "kuechenzeile", "oberflaechen",
     ],
     action: { label: "Leistungen ansehen", href: "/leistungen" },
   },
@@ -117,7 +174,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Reinigen Sie Büros?",
     answer:
-      "Ja, Büro- und Gewerberäume sind unser Schwerpunkt. Der Standardablauf — Staubsaugen, Wischen, Nasszellen, Abfall, Tische, Türgriffe — ist genau darauf zugeschnitten. CHF 99.– pro Stunde, im Abo CHF 82.50.",
+      "Ja, Büro- und Gewerberäume sind unser Schwerpunkt. Der Standardablauf — Böden, Arbeitsflächen, Sanitärbereich, Küchenzeile, Abfall, Türgriffe und Lichtschalter — ist genau darauf zugeschnitten. Bis 100 m² CHF 99.–, im Abo CHF 82.50; darüber nach Fläche.",
     keywords: [
       "buero", "gewerbe", "firma", "unternehmen", "geschaeft", "praxis", "kanzlei",
       "gewerblich", "arbeitsplatz", "raeumlichkeiten",
@@ -130,7 +187,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "entwurf",
     question: "Reinigen Sie auch Privatwohnungen?",
     answer:
-      "Ja, zum selben Stundenpreis wie Büros. Sagen Sie uns die Fläche, dann rechnen wir es Ihnen aus.",
+      "Ja, zum selben Flächenpreis wie Büros: bis 100 m² CHF 99.–, darüber CHF 0.99 pro m². Sagen Sie uns die Fläche, dann rechnen wir es Ihnen aus.",
     keywords: ["wohnung", "privat", "zuhause", "haus", "privatwohnung", "daheim"],
     action: { label: "Preis berechnen", href: "/preis" },
   },

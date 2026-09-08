@@ -9,8 +9,11 @@ export type Tariff = "standard" | "abo12";
 
 export type Frequency = "woechentlich" | "zweiwoechentlich" | "monatlich" | "einmalig";
 
-/** Zusatzleistungen, die nicht im Stundenpreis enthalten sind. */
-export type ExtraId = "fenster";
+/** Zusatzleistungen, die nicht im Grundpreis enthalten sind. */
+export type ExtraId = "fenster" | "teppich" | "kueche";
+
+/** Die drei Pakete, die beim Scrollen auseinanderwachsen. */
+export type PackageId = "essential" | "plus" | "complete";
 
 export interface QuoteInput {
   objectType: ObjectType;
@@ -43,6 +46,8 @@ export interface Quote {
   durationMinutes: number;
   /** Preis eines einzelnen Termins in Rappen, vor Steuer. */
   perVisitCents: number;
+  /** Fläche über dem Grundpreis. 0, solange 100 m² nicht überschritten sind. */
+  extraSqm: number;
   /** Monatspreis nach deiner Rechnung (4 Termine bei wöchentlich). */
   perMonthCents: number | null;
   /** Termine pro Monat, nach der Vier-Wochen-Rechnung. */

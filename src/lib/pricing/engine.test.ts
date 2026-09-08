@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { business } from "@/config/business";
-import { MAX_SQM_ONLINE, TARIFFS, WEEKS_PER_MONTH } from "./catalog";
-import { OutOfScopeError, calculateQuote, estimateMinutes, formatMoney } from "./engine";
+import { BASE_SQM, MAX_SQM_ONLINE, PACKAGES, TARIFFS, WEEKS_PER_MONTH } from "./catalog";
+import {
+  OutOfScopeError,
+  calculateQuote,
+  cleaningPriceCents,
+  estimateMinutes,
+  formatMoney,
+  formatSqmRate,
+} from "./engine";
 import type { QuoteInput } from "./types";
 
 /** Florijans Referenzfall: 100 m² Büro, 2 Nasszellen, Zürich, wöchentlich. */
@@ -31,15 +38,78 @@ test("REFERENZ: im Abo CHF 82.50 pro Termin und CHF 330.00 im Monat", () => {
   assert.equal(q.perMonthCents, 33000, `war ${formatMoney(q.perMonthCents ?? 0)}`);
 });
 
-test("REFERENZ: 150 m² sind 1,5 Stunden und im Abo CHF 123.75", () => {
-  const q = calculateQuote({ ...referenz, squareMeters: 150, tariff: "abo12" });
-  assert.equal(q.durationMinutes, 90);
-  assert.equal(q.totalPerVisitCents, 12375, `war ${formatMoney(q.totalPerVisitCents)}`);
+/**
+ * Florijans Staffel, wörtlich. Das ist die Tabelle, die er selbst geschrieben
+ * hat — wenn hier eine Zahl kippt, steht auf der Website ein anderer Preis, als
+ * er seinen Kunden nennt.
+ */
+const STAFFEL = [
+  { sqm: 100, standard: 9900, abo: 8250 },
+  { sqm: 150, standard: 14900, abo: 12375 },
+  { sqm: 200, standard: 19800, abo: 16500 },
+  { sqm: 250, standard: 24800, abo: 20625 },
+] as const;
+
+for (const { sqm, standard, abo } of STAFFEL) {
+  test(`REFERENZ: ${sqm} m² kosten ${formatMoney(standard)} bzw. ${formatMoney(abo)} im Abo`, () => {
+    const std = calculateQuote({ ...referenz, squareMeters: sqm });
+    const a = calculateQuote({ ...referenz, squareMeters: sqm, tariff: "abo12" });
+    assert.equal(std.totalPerVisitCents, standard, `Standard war ${formatMoney(std.totalPerVisitCents)}`);
+    assert.equal(a.totalPerVisitCents, abo, `Abo war ${formatMoney(a.totalPerVisitCents)}`);
+  });
+}
+
+test("REFERENZ: 150 m² sind 1,5 Stunden Reinigungszeit", () => {
+  assert.equal(calculateQuote({ ...referenz, squareMeters: 150 }).durationMinutes, 90);
 });
 
-test("REFERENZ: 150 m² im Standardtarif kosten CHF 148.50", () => {
+test("Der Quadratmeterpreis ist CHF 0.99 bzw. CHF 0.825", () => {
+  assert.equal(TARIFFS.standard.perSqmCents, 99);
+  assert.equal(TARIFFS.abo12.perSqmCents, 82.5);
+  // 0.825 darf nicht als 0.83 dastehen, sonst stimmt die Staffel darunter nicht.
+  assert.ok(formatSqmRate(82.5).includes("0.825"), formatSqmRate(82.5));
+  assert.ok(formatSqmRate(99).includes("0.99"), formatSqmRate(99));
+});
+
+test("Der Standardpreis steht auf ganzen Franken, der Abopreis auf fünf Rappen", () => {
+  for (let sqm = 20; sqm <= MAX_SQM_ONLINE; sqm++) {
+    assert.equal(cleaningPriceCents(sqm, "standard") % 100, 0, `${sqm} m² ergibt krumme Franken`);
+    assert.equal(cleaningPriceCents(sqm, "abo12") % 5, 0, `${sqm} m² ergibt krumme Rappen`);
+  }
+});
+
+test("Bis 100 m² gilt überall derselbe Grundpreis", () => {
+  for (const sqm of [20, 40, 75, 99, 100]) {
+    assert.equal(cleaningPriceCents(sqm, "standard"), 9900, `${sqm} m²`);
+    assert.equal(cleaningPriceCents(sqm, "abo12"), 8250, `${sqm} m²`);
+  }
+  assert.equal(BASE_SQM, 100);
+});
+
+test("Über 100 m² steigt der Preis mit jedem Quadratmeter", () => {
+  let vorher = cleaningPriceCents(BASE_SQM, "standard");
+  for (let sqm = BASE_SQM + 1; sqm <= MAX_SQM_ONLINE; sqm++) {
+    const jetzt = cleaningPriceCents(sqm, "standard");
+    assert.ok(jetzt >= vorher, `${sqm} m² ist billiger als ${sqm - 1} m²`);
+    vorher = jetzt;
+  }
+});
+
+test("Der Preis weicht nie mehr als eine Rundung vom Quadratmeterpreis ab", () => {
+  for (let sqm = BASE_SQM; sqm <= MAX_SQM_ONLINE; sqm++) {
+    const roh = sqm * TARIFFS.standard.perSqmCents;
+    assert.ok(
+      Math.abs(cleaningPriceCents(sqm, "standard") - roh) <= 50,
+      `${sqm} m²: ${formatMoney(cleaningPriceCents(sqm, "standard"))} statt ${formatMoney(roh)}`,
+    );
+  }
+});
+
+test("Die Fläche über dem Grundpreis wird getrennt ausgewiesen", () => {
+  assert.equal(calculateQuote({ ...referenz, squareMeters: 100 }).extraSqm, 0);
+  assert.equal(calculateQuote({ ...referenz, squareMeters: 150 }).extraSqm, 50);
   const q = calculateQuote({ ...referenz, squareMeters: 150 });
-  assert.equal(q.totalPerVisitCents, 14850, `war ${formatMoney(q.totalPerVisitCents)}`);
+  assert.ok(q.lines[0].detail?.includes("50 m²"), q.lines[0].detail);
 });
 
 test("REFERENZ: 100 m² sind eine Stunde Arbeit", () => {
@@ -59,7 +129,29 @@ test("Doppelte Fläche kostet doppelt so viel", () => {
   assert.equal(doppelt.durationMinutes, 120);
 });
 
-test("Mindestens eine Stunde wird berechnet", () => {
+test("Die Pakete erfinden keine Preise", () => {
+  for (const paket of PACKAGES) {
+    if (paket.status === "entwurf") {
+      assert.ok(paket.extras.length > 0, `${paket.label} hat weder Preis noch Inhalt`);
+    }
+  }
+  // Essential ist das einzige bestätigte Paket — es ist der Grundpreis selbst.
+  assert.equal(PACKAGES.filter((p) => p.status === "bestaetigt").length, 1);
+  assert.equal(PACKAGES[0].id, "essential");
+});
+
+test("Jede Zusatzleistung führt zur Anfrage statt zu einer Schätzung", () => {
+  const q = calculateQuote({ ...referenz, extras: ["fenster", "teppich", "kueche"] });
+  assert.equal(q.openItems.length, 3);
+  assert.equal(q.totalPerVisitCents, calculateQuote(referenz).totalPerVisitCents);
+});
+
+test("Der Bedingungssatz steht bei jeder Zahl", () => {
+  const q = calculateQuote(referenz);
+  assert.ok(q.notices.some((n) => n.includes("normal verschmutzte")), q.notices.join(" | "));
+});
+
+test("Mindestens der Grundpreis wird berechnet", () => {
   const klein = calculateQuote({ ...referenz, squareMeters: 20 });
   assert.equal(klein.durationMinutes, 60);
   assert.equal(klein.totalPerVisitCents, 9900);

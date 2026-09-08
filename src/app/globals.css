@@ -321,3 +321,71 @@ body {
 .intro-hint {
   animation: intro-hint 2.2s ease-in-out infinite;
 }
+
+/* ---------------------------------------------------------------------------
+   Die wachsende Paketkarte (office-offer.tsx)
+
+   Ruhezustand zuerst: ohne JavaScript und bei reduzierter Bewegung steht die
+   Karte vollständig offen da — Grundpaket als Überschrift, alle Zusätze
+   sichtbar und mit ihrem Paketnamen beschriftet. Erst `data-aktiv` schaltet
+   auf die vom Scroll gesteuerte Fassung um, in der die Karte von Essential
+   über Plus zu Complete wächst.
+--------------------------------------------------------------------------- */
+
+.offer-card {
+  /* Startwerte, damit der erste Frame vor dem ersten ScrollTrigger-Update
+     schon richtig aussieht statt kurz alles gleichzeitig zu zeigen. */
+  --kopf-0: 1;
+  --kopf-1: 0;
+  --kopf-2: 0;
+}
+
+.offer-head {
+  transition: none;
+}
+
+/* Ohne Animation: nur das Grundpaket benennen, sonst lägen drei
+   Überschriften übereinander. */
+.offer-card:not([data-aktiv]) .offer-head:not(:first-child) {
+  display: none;
+}
+
+.offer-card[data-aktiv] .offer-head {
+  pointer-events: none;
+}
+.offer-card[data-aktiv] .offer-head:nth-child(1) {
+  opacity: var(--kopf-0);
+  transform: translateY(calc((1 - var(--kopf-0)) * 10px));
+}
+.offer-card[data-aktiv] .offer-head:nth-child(2) {
+  opacity: var(--kopf-1);
+  transform: translateY(calc((1 - var(--kopf-1)) * 10px));
+}
+.offer-card[data-aktiv] .offer-head:nth-child(3) {
+  opacity: var(--kopf-2);
+  transform: translateY(calc((1 - var(--kopf-2)) * 10px));
+}
+/* Das jeweils sichtbare Paket ist auch das anklickbare. */
+.offer-card[data-aktiv] .offer-head:nth-child(1) {
+  pointer-events: auto;
+}
+
+/*
+  Eine Zusatzzeile. Der 0fr-auf-1fr-Trick misst nichts und ist deshalb exakt
+  umkehrbar; das innere Element muss dafür `min-height: 0` haben, sonst
+  ignoriert es die Zeilenhöhe.
+*/
+.offer-add {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.offer-card[data-aktiv] .offer-add {
+  grid-template-rows: var(--r, 0fr);
+  opacity: var(--o, 0);
+}
+.offer-add__inner {
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+}

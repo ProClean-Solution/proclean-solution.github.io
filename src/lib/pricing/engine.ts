@@ -1,5 +1,7 @@
 import { business } from "@/config/business";
 import {
+  BASE_SQM,
+  CONDITIONS_NOTE,
   EXTRAS,
   FREQUENCY_LABEL,
   MAX_SQM_ONLINE,
@@ -10,8 +12,9 @@ import {
   TARIFFS,
   TRAVEL_ZONES,
   VISITS_PER_MONTH,
+  type Rounding,
 } from "./catalog";
-import type { LineItem, OpenItem, Quote, QuoteInput } from "./types";
+import type { LineItem, OpenItem, Quote, QuoteInput, Tariff } from "./types";
 
 export class OutOfScopeError extends Error {
   constructor(
@@ -25,6 +28,36 @@ export class OutOfScopeError extends Error {
 
 function roundCents(value: number): number {
   return Math.sign(value) * Math.round(Math.abs(value));
+}
+
+/**
+ * Endrundung eines Betrags.
+ *
+ * Der Standardtarif landet auf ganzen Franken — so hat Florijan seine Staffel
+ * selbst geschrieben (148.50 -> 149.–, 247.50 -> 248.–). Der Abopreis bleibt
+ * auf fünf Rappen genau, weil 123.75 genau so auf der Seite stehen soll.
+ * Fünf Rappen, nicht ein Rappen: kleinere Münzen gibt es in der Schweiz nicht.
+ */
+export function roundTo(cents: number, mode: Rounding): number {
+  const step = mode === "franken" ? 100 : 5;
+  return Math.round(cents / step) * step;
+}
+
+/**
+ * Der Reinigungspreis für eine Fläche, in Rappen.
+ *
+ * Florijans Modell in einer Zeile: CHF 0.99 pro m², mindestens der Grundpreis
+ * von CHF 99.– für bis zu 100 m². Im Abo dieselbe Logik zu CHF 0.825.
+ *
+ * Bewusst NICHT aus der auf Viertelstunden gerundeten Dauer gerechnet: sonst
+ * würden 137 m² wie 125 m² abgerechnet und die ausgewiesene Staffel stimmte
+ * nicht mehr mit dem Quadratmeterpreis überein, den die Seite verspricht.
+ * Die Dauer ist eine Angabe für den Kunden, keine Rechengrösse.
+ */
+export function cleaningPriceCents(squareMeters: number, tariff: Tariff): number {
+  const def = TARIFFS[tariff];
+  const linear = squareMeters * def.perSqmCents;
+  return roundTo(Math.max(def.baseCents, linear), def.rounding);
 }
 
 /** Arbeitszeit in Minuten, auf Viertelstunden gerundet, mindestens eine Stunde. */
@@ -64,14 +97,17 @@ export function calculateQuote(input: QuoteInput): Quote {
   const openItems: OpenItem[] = [];
   const notices: string[] = [];
 
-  // 1. Reinigung nach Zeit
+  // 1. Reinigung nach Fläche
   const durationMinutes = estimateMinutes(sqm);
-  const hours = durationMinutes / 60;
-  const cleaningCents = roundCents(hours * tariff.hourlyCents);
+  const extraSqm = Math.max(0, sqm - BASE_SQM);
+  const cleaningCents = cleaningPriceCents(sqm, input.tariff);
   lines.push({
     label: `${OBJECT_LABEL[input.objectType]}, ${sqm} m²`,
     amountCents: cleaningCents,
-    detail: `${formatHours(hours)} zu ${formatMoney(tariff.hourlyCents)} pro Stunde`,
+    detail:
+      extraSqm > 0
+        ? `Grundpreis bis ${BASE_SQM} m² ${formatMoney(tariff.baseCents)}, dazu ${extraSqm} m² zu ${formatSqmRate(tariff.perSqmCents)} pro m²`
+        : `Grundpreis bis ${BASE_SQM} m², ${formatDuration(durationMinutes)} Reinigungszeit`,
   });
 
   // 2. Anfahrt
@@ -107,22 +143,27 @@ export function calculateQuote(input: QuoteInput): Quote {
       `Der Abopreis gilt bei ${tariff.commitmentMonths} Monaten Mindestlaufzeit. Danach jederzeit monatlich kündbar.`,
     );
   } else if (input.frequency !== "einmalig") {
-    const abo = TARIFFS.abo12;
-    const ersparnis = roundCents(hours * (tariff.hourlyCents - abo.hourlyCents));
-    notices.push(
-      `Mit dem Abo über 12 Monate zahlen Sie ${formatMoney(ersparnis)} weniger pro Termin.`,
-    );
+    // Aus den gerundeten Endpreisen, nicht aus den Rohwerten: sonst weicht die
+    // genannte Ersparnis von der Differenz ab, die im Rechner danebensteht.
+    const ersparnis = cleaningCents - cleaningPriceCents(sqm, "abo12");
+    if (ersparnis > 0) {
+      notices.push(
+        `Mit dem Abo über 12 Monate zahlen Sie ${formatMoney(ersparnis)} weniger pro Termin.`,
+      );
+    }
   }
   notices.push(
     business.vatRegistered
       ? business.priceNote.registered
       : business.priceNote.notRegistered,
   );
+  notices.push(CONDITIONS_NOTE);
 
   return {
     input: { ...input, squareMeters: sqm, extras: [...new Set(input.extras)].sort() },
     lines,
     durationMinutes,
+    extraSqm,
     perVisitCents,
     perMonthCents,
     visitsPerMonth,
@@ -140,6 +181,21 @@ export function formatMoney(cents: number): string {
   }).format(cents / 100);
 }
 
+/**
+ * Der Quadratmeterpreis. Zwei Nachkommastellen reichen für 0.99, drei für
+ * 0.825 — der Abopreis darf nicht auf 0.83 gerundet dastehen, sonst stimmt
+ * die Staffel darunter nicht mehr.
+ */
+export function formatSqmRate(cents: number): string {
+  const digits = Number.isInteger(cents) ? 2 : 3;
+  return new Intl.NumberFormat(business.locale, {
+    style: "currency",
+    currency: business.currency,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(cents / 100);
+}
+
 export function formatHours(hours: number): string {
   if (Number.isInteger(hours)) return hours === 1 ? "1 Stunde" : `${hours} Stunden`;
   return `${hours.toString().replace(".", ",")} Stunden`;
@@ -153,4 +209,4 @@ export function formatDuration(minutes: number): string {
   return `${h} Std. ${m} Min.`;
 }
 
-export { FREQUENCY_LABEL, OBJECT_LABEL, TARIFFS };
+export { BASE_SQM, CONDITIONS_NOTE, FREQUENCY_LABEL, OBJECT_LABEL, TARIFFS };

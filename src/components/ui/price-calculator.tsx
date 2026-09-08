@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { business } from "@/config/business";
 import {
+  BASE_SQM,
   EXTRAS,
   FREQUENCY_LABEL,
   INCLUDED_TASKS,
@@ -12,7 +13,13 @@ import {
   OBJECT_LABEL,
   TARIFFS,
 } from "@/lib/pricing/catalog";
-import { OutOfScopeError, calculateQuote, formatDuration, formatMoney } from "@/lib/pricing/engine";
+import {
+  OutOfScopeError,
+  calculateQuote,
+  formatDuration,
+  formatMoney,
+  formatSqmRate,
+} from "@/lib/pricing/engine";
 import type { Frequency, ObjectType, QuoteInput, Tariff } from "@/lib/pricing/types";
 import { RoomViewer } from "./room-viewer";
 import { cn } from "@/lib/utils";
@@ -81,7 +88,8 @@ export function PriceCalculator({ className }: { className?: string }) {
             className="w-full accent-[var(--accent)]"
           />
           <p className="text-xs text-muted-foreground">
-            Die Zimmerzahl spielt keine Rolle — wir rechnen nach Fläche und Zeit.
+            Die Zimmerzahl spielt keine Rolle. Bis {BASE_SQM} m² gilt der Grundpreis,
+            darüber rechnen wir pro Quadratmeter.
           </p>
           {/* Der Raum wächst mit dem Regler. Aus "150 m²" wird eine Grösse,
               die man sieht und drehen kann. */}
@@ -98,8 +106,8 @@ export function PriceCalculator({ className }: { className?: string }) {
                 key={t}
                 selected={input.tariff === t}
                 onClick={() => set("tariff", t)}
-                title={`${TARIFFS[t].label} · ${formatMoney(TARIFFS[t].hourlyCents)}/Std.`}
-                hint={TARIFFS[t].description}
+                title={`${TARIFFS[t].label} · ${formatMoney(TARIFFS[t].baseCents)}`}
+                hint={`bis ${BASE_SQM} m², darüber ${formatSqmRate(TARIFFS[t].perSqmCents)} pro m². ${TARIFFS[t].description}`}
               />
             ))}
           </div>
@@ -237,7 +245,7 @@ export function PriceCalculator({ className }: { className?: string }) {
               </ul>
 
               {quote.openItems.length > 0 ? (
-                <div className="rounded-xl border border-accent/40 bg-accent/10 p-4">
+                <div className="space-y-3 rounded-xl border border-accent/40 bg-accent/10 p-4">
                   {quote.openItems.map((item) => (
                     <div key={item.label}>
                       <p className="text-sm font-semibold">{item.label}: kein Onlinepreis</p>
@@ -253,7 +261,9 @@ export function PriceCalculator({ className }: { className?: string }) {
                 href="/kontakt"
                 className="block rounded-full bg-primary px-5 py-3 text-center text-sm font-semibold text-primary-foreground"
               >
-                {quote.openItems.length > 0 ? "Anfragen mit Fensterreinigung" : "Termin anfragen"}
+                {quote.openItems.length > 0
+                  ? `Anfragen mit ${quote.openItems.length === 1 ? quote.openItems[0].label : "Zusatzleistungen"}`
+                  : "Termin anfragen"}
               </a>
 
               {quote.notices.map((notice) => (
