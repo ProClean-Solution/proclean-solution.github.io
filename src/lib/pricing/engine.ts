@@ -10,6 +10,7 @@ import {
   OBJECT_LABEL,
   PACKAGE_BY_ID,
   SQM_PER_HOUR,
+  coveredBy,
   TARIFFS,
   TRAVEL_ZONES,
   VISITS_PER_MONTH,
@@ -179,29 +180,51 @@ export function calculateQuote(input: QuoteInput): Quote {
   /*
     3. Zusatzleistungen.
 
-    Drei Ausgänge, und nur einer davon erzeugt eine Zahl:
-      – das Paket deckt sie ab   -> als enthalten ausweisen
-      – es gibt keinen Preis     -> als offenen Posten zur Anfrage
-      – sonst                    -> Menge mal Einzelpreis
+    Vier Ausgänge, und nur zwei davon erzeugen eine Zahl:
+      – das Paket deckt sie ganz ab        -> als enthalten ausweisen
+      – das Paket enthält ein Kontingent   -> nur die Mehrmenge berechnen
+      – es gibt keinen Preis               -> offener Posten zur Anfrage
+      – sonst                              -> Menge mal Einzelpreis
+
+    Das Kontingent ist der Grund, warum hier nicht einfach ein Flag steht:
+    Office Complete enthält die Innenfenster bis 10 m² Glas. Bei 18 m²
+    schuldet der Kunde acht Quadratmeter, nicht achtzehn und nicht null.
   */
+  const abgedeckt = coveredBy(input.packageId);
   const extras = normalisiereExtras(input.extras);
   for (const wahl of extras) {
     const extra = EXTRAS[wahl.id];
-    if (extra.includedIn.includes(input.packageId)) {
+    const frei = abgedeckt[wahl.id];
+
+    if (frei !== undefined && extra.unit === "pauschal") {
       coveredItems.push({ label: extra.label, packageLabel: paket.label });
       continue;
     }
+
     if (extra.priceCents === null) {
       openItems.push({ label: extra.label, reason: extra.note });
       continue;
     }
+
+    const zuZahlen = frei === undefined ? wahl.quantity : Math.max(0, wahl.quantity - frei);
+    if (zuZahlen === 0) {
+      coveredItems.push({
+        label: extra.label,
+        packageLabel: paket.label,
+        detail: `bis ${frei} ${extra.unitLabel} enthalten, ${wahl.quantity} gewählt`,
+      });
+      continue;
+    }
+
     lines.push({
       label: extra.label,
-      amountCents: extra.priceCents * wahl.quantity,
+      amountCents: extra.priceCents * zuZahlen,
       detail:
         extra.unit === "pauschal"
           ? undefined
-          : `${wahl.quantity} × ${formatMoney(extra.priceCents)} pro ${extra.unitLabel}`,
+          : frei === undefined
+            ? `${zuZahlen} × ${formatMoney(extra.priceCents)} pro ${extra.unitLabel}`
+            : `${frei} ${extra.unitLabel} in ${paket.label} enthalten, ${zuZahlen} × ${formatMoney(extra.priceCents)} darüber`,
     });
   }
 
@@ -235,6 +258,9 @@ export function calculateQuote(input: QuoteInput): Quote {
       `${FREQUENCY_LABEL[input.frequency]} — der Paketpreis gilt pro Reinigung.`,
     );
   }
+  // Was das Paket ausdrücklich nicht abdeckt, steht bei seinem Preis —
+  // nicht erst im Kleingedruckten der Rechnung.
+  if (paket.limit) notices.push(paket.limit);
   notices.push(
     business.vatRegistered ? business.priceNote.registered : business.priceNote.notRegistered,
   );

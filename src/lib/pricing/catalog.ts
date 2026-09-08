@@ -137,6 +137,17 @@ export const INCLUDED_TASKS = [
 export const CONDITIONS_NOTE =
   "Preis gilt für normal verschmutzte und frei zugängliche Büroflächen. Starke Verschmutzungen, Grundreinigungen, Bauendreinigungen und aussergewöhnlicher Mehraufwand werden separat berechnet.";
 
+/**
+ * Glasfläche, die Office Complete innen enthält.
+ *
+ * Florijans Rechnung: der Sprung von Plus auf Complete beträgt CHF 40.–.
+ * Bei 15 m² wären allein die Fenster zum Normaltarif CHF 67.50 wert —
+ * das Paket würde sich selbst tragen müssen. 10 m² zu CHF 4.50 sind
+ * CHF 45.– und lassen neben Kühlschrank, Mikrowelle und Detailreinigung
+ * noch Luft.
+ */
+export const COMPLETE_GLAS_SQM = 10;
+
 export interface PackageDef {
   id: PackageId;
   label: string;
@@ -145,6 +156,18 @@ export interface PackageDef {
   baseCents: number;
   /** Was dieses Paket zusätzlich zum vorherigen enthält. */
   adds: readonly string[];
+  /**
+   * Zusatzleistungen, die DIESES Paket zusätzlich abdeckt — wie `adds` die
+   * Differenz zum vorherigen Paket, nicht die volle Liste.
+   *
+   * Der Wert ist die enthaltene MENGE: 1 bei pauschalen Leistungen (also
+   * ganz enthalten), sonst ein Freikontingent in der Einheit der Leistung.
+   * Complete enthält die Innenfenster bis 10 m² Glas; darüber wird jeder
+   * weitere Quadratmeter normal berechnet.
+   */
+  covers: Partial<Record<ExtraId, number>>;
+  /** Was das Paket ausdrücklich NICHT abdeckt. Steht bei jedem Preis dabei. */
+  limit?: string;
   /** Genau eines trägt die Auszeichnung. */
   beliebt?: boolean;
 }
@@ -163,6 +186,7 @@ export const PACKAGES: PackageDef[] = [
     tagline: "Alles, was ein sauberes Büro braucht.",
     baseCents: 9900,
     adds: [],
+    covers: {},
   },
   {
     id: "plus",
@@ -172,26 +196,40 @@ export const PACKAGES: PackageDef[] = [
     beliebt: true,
     adds: [
       "Gründlichere Sanitärreinigung",
-      "Küchenfronten und Spüle",
+      "Küchenzeile: Fronten, Arbeitsfläche und Spüle",
       "Kaffeemaschine aussen",
-      "Glastüren und kleine Glasflächen",
-      "Stärkere Oberflächenreinigung",
-      "Zusätzliche Detailreinigung",
+      "Glastüren und kleine interne Glasflächen",
+      "Intensivere Oberflächen- und Detailreinigung",
     ],
+    covers: {
+      kuechenzeile: 1,
+      kaffeemaschine: 1,
+      "oberflaechen-intensiv": 1,
+    },
   },
   {
     id: "complete",
     label: "Office Complete",
     tagline: "Einfach kommen. Arbeiten. Alles andere ist erledigt.",
     baseCents: 17900,
+    /*
+      Nur die Differenz zu Plus. Die Karte wächst kumulativ — die Zeilen von
+      Plus bleiben stehen —, deshalb stünde sonst jeder Punkt doppelt da.
+    */
     adds: [
-      "Innenfenster bzw. definierte Glasfläche",
+      `Fenster innen bis ${COMPLETE_GLAS_SQM} m² Glasfläche`,
       "Kühlschrank aussen",
-      "Mikrowelle",
+      "Mikrowelle innen und aussen",
       "Zusätzliche Detailflächen",
-      "Intensivere Reinigung",
-      "Höhere Zeitreserve",
+      "Höhere Reinigungsintensität und Zeitreserve",
     ],
+    covers: { "fenster-innen": COMPLETE_GLAS_SQM },
+    /*
+      Kurz genug, um beim Preis zu stehen statt im Kleingedruckten. Die
+      Langfassung — schwer zugängliche Fassadenverglasung — steht am
+      Leistungshinweis der Fensterreinigung und beim Assistenten.
+    */
+    limit: `Fenster innen bis ${COMPLETE_GLAS_SQM} m² Glasfläche, darüber pro m². Aussenfenster sind nicht enthalten.`,
   },
 ];
 
@@ -212,15 +250,6 @@ export interface ExtraDef {
   /** Wie die Menge im Rechner heisst. Nur bei `pauschal` leer. */
   unitLabel: string;
   note: string;
-  /**
-   * Pakete, die diese Leistung bereits abdecken. Wird sie trotzdem
-   * angehakt, weist der Rechner sie als enthalten aus, statt sie ein
-   * zweites Mal zu berechnen.
-   *
-   * OFFEN: Diese Zuordnung ist aus Florijans Paketbeschreibungen gelesen,
-   * nicht von ihm bestätigt. Vor dem Livegang durchgehen.
-   */
-  includedIn: readonly PackageId[];
 }
 
 /**
@@ -236,8 +265,7 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     priceCents: 450,
     unit: "m2glas",
     unitLabel: "m² Glas",
-    note: "Innenseite der Fenster, nach Glasfläche.",
-    includedIn: ["complete"],
+    note: `Innenseitige Glasreinigung, nach Glasfläche. In Office Complete bis ${COMPLETE_GLAS_SQM} m² enthalten, darüber pro zusätzlichem m².`,
   },
   "fenster-beidseitig": {
     id: "fenster-beidseitig",
@@ -245,8 +273,7 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     priceCents: 750,
     unit: "m2glas",
     unitLabel: "m² Glas",
-    note: "Beide Seiten. Bei schwer erreichbaren Fenstern melden wir uns vorher.",
-    includedIn: [],
+    note: "Beide Seiten. In keinem Paket enthalten — auch nicht in Complete, das nur die Innenseite abdeckt. Bei schwer erreichbarer Fassadenverglasung melden wir uns vorher.",
   },
   "wc-zusatz": {
     id: "wc-zusatz",
@@ -255,7 +282,6 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     unit: "stueck",
     unitLabel: "Bereich",
     note: "Ein Sanitärbereich steckt bereits im Paket. Dies ist jeder weitere.",
-    includedIn: [],
   },
   kuechenzeile: {
     id: "kuechenzeile",
@@ -263,8 +289,7 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     priceCents: 1490,
     unit: "pauschal",
     unitLabel: "",
-    note: "Fronten, Spüle und Arbeitsfläche.",
-    includedIn: ["plus", "complete"],
+    note: "Fronten, Arbeitsfläche und Spüle.",
   },
   geschirr: {
     id: "geschirr",
@@ -273,7 +298,6 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     unit: "pauschal",
     unitLabel: "",
     note: "Stehengebliebenes Geschirr, von Hand oder in die Maschine.",
-    includedIn: [],
   },
   kuehlschrank: {
     id: "kuehlschrank",
@@ -281,8 +305,7 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     priceCents: 1490,
     unit: "pauschal",
     unitLabel: "",
-    note: "Ausräumen, auswischen, einräumen. Die Aussenseite ist in Complete enthalten.",
-    includedIn: [],
+    note: "Ausräumen, auswischen, einräumen. Nur die Innenseite — die Aussenseite ist in Office Complete enthalten.",
   },
   kaffeemaschine: {
     id: "kaffeemaschine",
@@ -291,7 +314,6 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     unit: "pauschal",
     unitLabel: "",
     note: "Brüheinheit, Milchsystem und Auffangschale.",
-    includedIn: ["plus", "complete"],
   },
   abfallstation: {
     id: "abfallstation",
@@ -300,7 +322,6 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     unit: "stueck",
     unitLabel: "Station",
     note: "Für Büros mit getrennter Sammelstelle je Etage oder Küche.",
-    includedIn: [],
   },
   "oberflaechen-intensiv": {
     id: "oberflaechen-intensiv",
@@ -309,7 +330,6 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     unit: "pauschal",
     unitLabel: "",
     note: "Auch belegte Flächen, nicht nur die freien.",
-    includedIn: ["plus", "complete"],
   },
   stuehle: {
     id: "stuehle",
@@ -318,7 +338,6 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     unit: "stueck",
     unitLabel: "Stuhl",
     note: "Polster und Gestell, je Stuhl.",
-    includedIn: [],
   },
   teppich: {
     id: "teppich",
@@ -327,7 +346,6 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     unit: "m2glas",
     unitLabel: "m²",
     note: "Maschinelle Reinigung für textile Flächen. Preis nach Fläche und Verschmutzungsgrad — wir schauen es uns an und nennen einen Festpreis.",
-    includedIn: [],
   },
   desinfektion: {
     id: "desinfektion",
@@ -336,11 +354,31 @@ export const EXTRAS: Record<ExtraId, ExtraDef> = {
     unit: "pauschal",
     unitLabel: "",
     note: "Kontaktflächen zusätzlich desinfizieren.",
-    includedIn: [],
   },
 };
 
 export const EXTRA_LIST = Object.values(EXTRAS);
+
+/**
+ * Was ein Paket insgesamt abdeckt.
+ *
+ * `covers` ist je Paket nur die Differenz zum vorherigen — genau wie `adds`.
+ * Complete enthält also alles aus Plus, ohne dass es dort noch einmal steht.
+ * Hier wird daraus die vollständige Liste.
+ */
+export function coveredBy(packageId: PackageId): Partial<Record<ExtraId, number>> {
+  const bis = PACKAGES.findIndex((p) => p.id === packageId);
+  const gesamt: Partial<Record<ExtraId, number>> = {};
+  for (const paket of PACKAGES.slice(0, bis + 1)) Object.assign(gesamt, paket.covers);
+  return gesamt;
+}
+
+/** Die Pakete, die eine Leistung abdecken — samt enthaltener Menge. */
+export function packagesCovering(id: ExtraId): Array<{ paket: PackageDef; menge: number }> {
+  return PACKAGES.map((paket) => ({ paket, menge: coveredBy(paket.id)[id] ?? 0 })).filter(
+    (e) => e.menge > 0,
+  );
+}
 
 /** Anfahrt ab Kloten. Innerhalb des Kerngebiets kostenlos. */
 export const TRAVEL_ZONES = [

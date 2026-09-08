@@ -3,12 +3,15 @@ import { test } from "node:test";
 import { business } from "@/config/business";
 import {
   BASE_SQM,
+  COMPLETE_GLAS_SQM,
   EXTRAS,
   EXTRA_LIST,
   MAX_SQM_ONLINE,
   PACKAGES,
   TARIFFS,
   VISITS_PER_MONTH,
+  coveredBy,
+  packagesCovering,
 } from "./catalog";
 import {
   OutOfScopeError,
@@ -238,7 +241,7 @@ test("Eine Pauschale lässt sich nicht durch eine Menge vervielfachen", () => {
   assert.equal(q.totalPerVisitCents, 9900 + 1990);
 });
 
-test("Was das Paket schon enthält, wird nicht ein zweites Mal berechnet", () => {
+test("Was das Paket pauschal enthält, wird nicht ein zweites Mal berechnet", () => {
   const q = calculateQuote({
     ...referenz,
     packageId: "plus",
@@ -272,12 +275,88 @@ test("Jede Zusatzleistung hat entweder einen Preis oder einen Grund", () => {
     }
     if (extra.unit === "pauschal") assert.equal(extra.unitLabel, "");
     else assert.ok(extra.unitLabel.length > 0, `${extra.label} ohne Einheit`);
+    // Ein Kontingent ergibt nur bei mengenabhängigen Leistungen einen Sinn.
+    for (const paket of PACKAGES) {
+      const frei = paket.covers[extra.id];
+      if (frei !== undefined && extra.unit === "pauschal") assert.equal(frei, 1, extra.label);
+      if (frei !== undefined && extra.unit !== "pauschal") assert.ok(frei > 1, extra.label);
+    }
   }
 });
 
 test("Die Fensterreinigung innen steckt in Complete, die Aussenseite nicht", () => {
-  assert.ok(EXTRAS["fenster-innen"].includedIn.includes("complete"));
-  assert.ok(!EXTRAS["fenster-beidseitig"].includedIn.includes("complete"));
+  assert.equal(coveredBy("complete")["fenster-innen"], COMPLETE_GLAS_SQM);
+  assert.equal(coveredBy("complete")["fenster-beidseitig"], undefined);
+  assert.equal(coveredBy("plus")["fenster-innen"], undefined);
+});
+
+test("Complete deckt die Innenfenster nur bis zum Kontingent", () => {
+  const mit = (m2: number) =>
+    calculateQuote({
+      ...referenz,
+      packageId: "complete",
+      extras: [{ id: "fenster-innen", quantity: m2 }],
+    });
+
+  // Innerhalb des Kontingents: kein Zuschlag, aber sichtbar ausgewiesen.
+  const knapp = mit(COMPLETE_GLAS_SQM);
+  assert.equal(knapp.totalPerVisitCents, 17900, `war ${formatMoney(knapp.totalPerVisitCents)}`);
+  assert.equal(knapp.coveredItems.length, 1);
+  assert.ok(knapp.coveredItems[0].detail?.includes(`${COMPLETE_GLAS_SQM}`));
+
+  // Florijans eigenes Beispiel: 18 m² Glas ergeben CHF 36.– Zuschlag.
+  const drueber = mit(18);
+  assert.equal(
+    drueber.totalPerVisitCents,
+    17900 + 3600,
+    `war ${formatMoney(drueber.totalPerVisitCents)}`,
+  );
+  assert.equal(drueber.coveredItems.length, 0);
+  assert.ok(drueber.lines[1].detail?.includes("darüber"), drueber.lines[1].detail);
+});
+
+test("Ohne Complete zählt jeder Quadratmeter Glas", () => {
+  const q = calculateQuote({ ...referenz, extras: [{ id: "fenster-innen", quantity: 18 }] });
+  assert.equal(q.totalPerVisitCents, 9900 + 450 * 18);
+});
+
+test("Complete verspricht keine unbegrenzten Fenster", () => {
+  const q = calculateQuote({ ...referenz, packageId: "complete" });
+  const vorbehalt = q.notices.find((n) => n.includes("Aussenfenster"));
+  assert.ok(vorbehalt, q.notices.join(" | "));
+  assert.ok(vorbehalt.includes(`${COMPLETE_GLAS_SQM} m²`), vorbehalt);
+  // Und die Aussenseite kostet auch in Complete den vollen Preis.
+  const beidseitig = calculateQuote({
+    ...referenz,
+    packageId: "complete",
+    extras: [{ id: "fenster-beidseitig", quantity: 12 }],
+  });
+  assert.equal(beidseitig.totalPerVisitCents, 17900 + 750 * 12);
+});
+
+test("Plus deckt genau die drei Leistungen ab, die Florijan genannt hat", () => {
+  assert.deepEqual(Object.keys(coveredBy("plus")).sort(), [
+    "kaffeemaschine",
+    "kuechenzeile",
+    "oberflaechen-intensiv",
+  ]);
+  // Ein weiterer Sanitärbereich ist etwas anderes als eine gründlichere
+  // Reinigung des vorhandenen — er bleibt kostenpflichtig.
+  assert.equal(coveredBy("complete")["wc-zusatz"], undefined);
+});
+
+test("Complete enthält alles aus Plus", () => {
+  for (const id of Object.keys(coveredBy("plus"))) {
+    assert.ok(id in coveredBy("complete"), `${id} fehlt in Complete`);
+  }
+});
+
+test("packagesCovering nennt Paket und Menge", () => {
+  assert.deepEqual(
+    packagesCovering("fenster-innen").map((e) => [e.paket.id, e.menge]),
+    [["complete", COMPLETE_GLAS_SQM]],
+  );
+  assert.equal(packagesCovering("geschirr").length, 0);
 });
 
 test("Doppelt angehakte Leistungen werden zusammengezählt, nicht verdoppelt gelistet", () => {

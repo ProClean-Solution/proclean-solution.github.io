@@ -10,6 +10,7 @@ import {
   INCLUDED_TASKS,
   PACKAGES,
   TARIFFS,
+  packagesCovering,
 } from "@/lib/pricing/catalog";
 import {
   formatMoney,
@@ -208,6 +209,13 @@ export function OfficeOffer() {
                   <p className="mt-1.5 text-[0.8rem] leading-snug text-[var(--stage-dim)] sm:mt-2 sm:text-base">
                     {paket.tagline}
                   </p>
+                  {/* Der Vorbehalt steht beim Preis, nicht im Kleingedruckten:
+                      "Complete" darf nicht nach unbegrenzten Fenstern klingen. */}
+                  {paket.limit ? (
+                    <p className="mt-2 max-w-2xl text-[0.68rem] leading-snug text-[var(--stage-dim)] sm:text-xs">
+                      {paket.limit}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -393,13 +401,17 @@ export function OfficeOffer() {
             >
               <span className="min-w-0">
                 <span className="block text-sm">{extra.label}</span>
-                {extra.includedIn.length > 0 ? (
+                {/* Ein Kontingent ist etwas anderes als "ganz enthalten" —
+                    Complete deckt die Innenfenster nur bis 10 m² Glas. */}
+                {packagesCovering(extra.id).length > 0 ? (
                   <span className="mt-0.5 block text-xs text-[var(--stage-dim)]">
-                    in{" "}
-                    {extra.includedIn
-                      .map((id) => PACKAGES.find((p) => p.id === id)?.label.replace("Office ", ""))
-                      .join(" und ")}{" "}
-                    enthalten
+                    {packagesCovering(extra.id)
+                      .map(({ paket, menge }) =>
+                        extra.unit === "pauschal"
+                          ? `in ${paket.label.replace("Office ", "")} enthalten`
+                          : `in ${paket.label.replace("Office ", "")} bis ${menge} ${extra.unitLabel} enthalten`,
+                      )
+                      .join(", ")}
                   </span>
                 ) : null}
               </span>

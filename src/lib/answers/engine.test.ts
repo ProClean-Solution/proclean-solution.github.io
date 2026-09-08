@@ -149,3 +149,35 @@ test("topQuestions liefert echte Eintraege", () => {
   assert.equal(top.length, 5);
   for (const t of top) assert.ok(KNOWLEDGE.includes(t));
 });
+
+/**
+ * REGRESSION: "Was ist inklusive?" ist die häufigste Frage der Seite und muss
+ * den Leistungsumfang nennen.
+ *
+ * Der Eintrag zu den Fenstern in Office Complete trug einmal das Stichwort
+ * "inklusive fenster". Weil Stichwörter in einzelne Wörter zerlegt werden,
+ * machte das "inklusive" zu einem seltenen und dadurch schwer gewichteten
+ * Wort dieses Eintrags — und die Frage landete bei einer Antwort über
+ * Glasflächen statt beim Leistungsumfang.
+ */
+test("Die Frage nach dem Leistungsumfang landet nicht bei den Fenstern", () => {
+  for (const frage of [
+    "was ist inklusive",
+    "was ist alles inklusive",
+    "welche leistungen sind enthalten",
+    "was ist im preis enthalten",
+  ]) {
+    const a = answer(frage);
+    if (a.kind === "rueckfrage") {
+      assert.ok(
+        a.suggestions.some((e) => e.id === "leistung-inklusive"),
+        `"${frage}" schlägt den Leistungsumfang nicht einmal vor`,
+      );
+      continue;
+    }
+    assert.ok(
+      a.text.includes("Türgriffe"),
+      `"${frage}" antwortet mit: ${a.text.slice(0, 90)}`,
+    );
+  }
+});

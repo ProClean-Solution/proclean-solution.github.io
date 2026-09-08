@@ -15,6 +15,7 @@ import {
   OBJECT_LABEL,
   PACKAGES,
   TARIFFS,
+  coveredBy,
 } from "@/lib/pricing/catalog";
 import {
   OutOfScopeError,
@@ -244,7 +245,13 @@ export function PriceCalculator({ className }: { className?: string }) {
           <ul className="space-y-1.5">
             {EXTRA_LIST.map((extra) => {
               const aktiv = input.extras.some((e) => e.id === extra.id);
-              const enthalten = extra.includedIn.includes(input.packageId);
+              const frei = coveredBy(input.packageId)[extra.id];
+              /*
+                Ganz enthalten ist nur, was pauschal abgedeckt ist. Ein
+                Kontingent (Complete: 10 m² Glas) bleibt anhakbar — sonst
+                könnte niemand die Mehrmenge angeben.
+              */
+              const enthalten = frei !== undefined && extra.unit === "pauschal";
               return (
                 <li key={extra.id}>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -268,9 +275,11 @@ export function PriceCalculator({ className }: { className?: string }) {
                           ? "im Paket"
                           : extra.priceCents === null
                             ? "nach Fläche"
-                            : `+${formatMoney(extra.priceCents)}${
-                                extra.unit === "pauschal" ? "" : ` / ${extra.unitLabel}`
-                              }`}
+                            : frei !== undefined
+                              ? `${frei} ${extra.unitLabel} frei, dann +${formatMoney(extra.priceCents)}`
+                              : `+${formatMoney(extra.priceCents)}${
+                                  extra.unit === "pauschal" ? "" : ` / ${extra.unitLabel}`
+                                }`}
                       </span>
                     </button>
 
@@ -374,9 +383,12 @@ export function PriceCalculator({ className }: { className?: string }) {
               {quote.coveredItems.length > 0 ? (
                 <ul className="space-y-1 border-t pt-4 text-xs text-muted-foreground">
                   {quote.coveredItems.map((item) => (
-                    <li key={item.label} className="flex justify-between gap-4">
-                      <span>{item.label}</span>
-                      <span className="whitespace-nowrap">in {item.packageLabel}</span>
+                    <li key={item.label}>
+                      <div className="flex justify-between gap-4">
+                        <span>{item.label}</span>
+                        <span className="whitespace-nowrap">in {item.packageLabel}</span>
+                      </div>
+                      {item.detail ? <p className="opacity-70">{item.detail}</p> : null}
                     </li>
                   ))}
                 </ul>

@@ -88,7 +88,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Was ist der Unterschied zwischen Essential, Plus und Complete?",
     answer:
-      "Office Essential (CHF 99.– bis 100 m²) ist der Grundumfang: Böden, Arbeitsflächen, ein Sanitärbereich, Küchenzeile, Abfall, Türgriffe. Office Plus (CHF 139.–) legt gründlichere Sanitärreinigung, Küchenfronten und Spüle, Kaffeemaschine aussen, Glastüren, stärkere Oberflächenreinigung und zusätzliche Detailreinigung dazu — das ist das meistgewählte Paket. Office Complete (CHF 179.–) nimmt zusätzlich Innenfenster, Kühlschrank aussen, Mikrowelle, weitere Detailflächen, intensivere Reinigung und mehr Zeitreserve dazu.",
+      "Office Essential (CHF 99.– bis 100 m²) ist die Basis-Unterhaltsreinigung: Böden, Arbeitsflächen, ein Sanitärbereich, Küchenzeile, Abfall, Türgriffe. Office Plus (CHF 139.–) legt gründlichere Sanitärreinigung, die Küchenzeile mit Fronten, Arbeitsfläche und Spüle, die Kaffeemaschine aussen, Glastüren und kleine interne Glasflächen sowie eine intensivere Oberflächen- und Detailreinigung dazu — das ist das meistgewählte Paket. Office Complete (CHF 179.–) nimmt zusätzlich die Fenster innen bis 10 m² Glasfläche, den Kühlschrank aussen, die Mikrowelle innen und aussen, weitere Detailflächen und mehr Zeitreserve dazu.",
     keywords: [
       "paket", "pakete", "essential", "plus", "complete", "office", "unterschied",
       "welches paket", "stufe", "variante", "angebot", "auswahl", "139", "179",
@@ -133,7 +133,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     status: "bestaetigt",
     question: "Was kostet die Fensterreinigung?",
     answer:
-      "Wir rechnen nach Glasfläche: innen CHF 4.50 pro m² Glas, innen und aussen CHF 7.50 pro m² Glas. Im Paket Office Complete sind die Innenfenster bzw. eine definierte Glasfläche bereits enthalten. Bei schwer erreichbaren Fenstern melden wir uns vorher, statt Sie mit einem Aufschlag zu überraschen.",
+      "Wir rechnen nach Glasfläche: innen CHF 4.50 pro m² Glas, innen und aussen CHF 7.50 pro m² Glas. In Office Complete ist die innenseitige Glasreinigung bis 10 m² Glasfläche enthalten; jeder weitere Quadratmeter kostet CHF 4.50. Bei 18 m² Glas wären das also CHF 36.– zusätzlich. Aussenfenster und schwer zugängliche Fassadenverglasung sind in keinem Paket enthalten — bei solchen Fenstern melden wir uns vorher, statt Sie mit einem Aufschlag zu überraschen.",
     keywords: [
       "fenster", "scheiben", "glas", "fensterputzen", "fensterreinigung", "rahmen",
       "innenfenster", "aussenfenster", "glasflaeche", "verglasung",
@@ -142,12 +142,28 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
   },
 
   {
+    id: "preis-fenster-complete",
+    category: "preis",
+    status: "bestaetigt",
+    question: "Sind bei Office Complete alle Fenster inklusive?",
+    answer:
+      "Nein, und das sagen wir lieber vorher: enthalten ist die Reinigung der Fenster von innen, bis 10 m² Glasfläche. Darüber kostet jeder weitere Quadratmeter CHF 4.50. Aussenfenster und schwer zugängliche Fassadenverglasung sind nicht enthalten — dafür gilt der Preis für Fenster innen und aussen von CHF 7.50 pro m² Glas.",
+    keywords: [
+      // Bewusst OHNE "inklusive": als Stichwort zog es die häufigste Frage
+      // der ganzen Seite ("was ist inklusive?") auf diese Fensterantwort.
+      "complete", "alle fenster", "unbegrenzt", "glasflaeche", "10 m2",
+      "aussenfenster", "fassade", "innenfenster", "wieviel glas", "definierte glasflaeche",
+      "kontingent", "begrenzt", "fensterkontingent",
+    ],
+    action: { label: "Glasfläche rechnen", href: "/preis" },
+  },
+  {
     id: "preis-optionen",
     category: "preis",
     status: "bestaetigt",
     question: "Was kosten die Zusatzleistungen?",
     answer:
-      "Pro Reinigung dazubuchbar: weiterer WC-/Sanitärbereich CHF 19.90, Küchenzeile CHF 14.90, Geschirr abwaschen CHF 9.90, Kühlschrank innen CHF 14.90, Kaffeemaschine CHF 9.90, zusätzliche Abfallstation CHF 4.90, intensive Tisch- und Oberflächenreinigung CHF 14.90, Stühle CHF 2.50 pro Stuhl, Desinfektionsreinigung CHF 19.90. Fenster rechnen wir nach Glasfläche, Teppich-Tiefenreinigung nach Fläche auf Anfrage. Was Ihr Paket schon enthält, berechnen wir nicht ein zweites Mal.",
+      "Pro Reinigung dazubuchbar: weiterer WC-/Sanitärbereich CHF 19.90, Küchenzeile CHF 14.90, Geschirr abwaschen CHF 9.90, Kühlschrank innen CHF 14.90, Kaffeemaschine CHF 9.90, zusätzliche Abfallstation CHF 4.90, intensive Tisch- und Oberflächenreinigung CHF 14.90, Stühle CHF 2.50 pro Stuhl, Desinfektionsreinigung CHF 19.90. Fenster rechnen wir nach Glasfläche, Teppich-Tiefenreinigung nach Fläche auf Anfrage. In Office Plus sind Küchenzeile, Kaffeemaschine und die intensive Oberflächenreinigung bereits enthalten, in Office Complete zusätzlich die Fenster innen bis 10 m² — das berechnen wir dann nicht ein zweites Mal.",
     keywords: [
       "zusatz", "zusatzleistung", "zusatzleistungen", "optionen", "dazubuchen",
       "extra", "extras", "preisliste", "kuehlschrank", "mikrowelle", "kaffeemaschine",

@@ -194,6 +194,14 @@ check(
   "Die Zusatzleistungen stehen mit Preis da",
   ["4.50", "19.90", "2.50", "9.90"].every((z) => angebotsText.includes(z)),
 );
+check(
+  "Das Fensterkontingent steht bei der Leistung",
+  angebotsText.includes("in Complete bis 10 m² Glas enthalten"),
+);
+check(
+  "Und der Vorbehalt zu Aussenfenstern steht auf der Karte",
+  angebotsText.includes("Aussenfenster sind nicht enthalten"),
+);
 
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForTimeout(400);
@@ -330,6 +338,39 @@ await page.getByRole("button", { name: /^Office Essential,/ }).click();
 await page.getByRole("button", { name: /^Küchenzeile reinigen/ }).click();
 await page.waitForTimeout(200);
 
+// Das Fensterkontingent in Complete: enthalten bis 10 m², darueber gerechnet
+await page.getByRole("button", { name: /^Office Complete,/ }).click();
+await page.waitForTimeout(250);
+const completePreis = parse(await preisEl.textContent());
+await page.getByRole("button", { name: /^Fensterreinigung innen/ }).click();
+await page.waitForTimeout(300);
+check(
+  "Zehn Quadratmeter Glas sind in Complete enthalten",
+  parse(await preisEl.textContent()) === completePreis,
+  (await preisEl.textContent())?.trim(),
+);
+check(
+  "Und der Rechner weist das Kontingent aus",
+  (await rechner.innerText()).includes("bis 10 m² Glas enthalten"),
+);
+const glasFeld = page.getByLabel("Fensterreinigung innen: m² Glas");
+await glasFeld.fill("18");
+await glasFeld.blur();
+await page.waitForTimeout(300);
+check(
+  "Achtzehn Quadratmeter kosten CHF 36.00 zusätzlich",
+  parse(await preisEl.textContent()) === completePreis + 36 * 4,
+  (await preisEl.textContent())?.trim(),
+);
+check(
+  "Complete verspricht keine unbegrenzten Fenster",
+  (await rechner.innerText()).includes("Aussenfenster"),
+);
+await page.getByRole("button", { name: /^Fensterreinigung innen/ }).click();
+await page.getByRole("button", { name: /^Office Essential,/ }).click();
+await page.getByRole("button", { name: /Abo 12 Monate/ }).click();
+await page.waitForTimeout(250);
+
 // Teppichreinigung hat weiterhin keinen Onlinepreis
 await page.getByRole("button", { name: /^Teppich-Tiefenreinigung/ }).click();
 await page.waitForTimeout(250);
@@ -400,6 +441,10 @@ check(
 );
 const antwortAufPakete = await frage("unterschied essential plus complete");
 check(
+  "Frage nach Complete-Fenstern nennt die 10 m²",
+  (await frage("sind bei complete alle fenster inklusive")).includes("10 m²"),
+);
+check(
   "Frage nach den Paketen nennt alle drei Preise",
   ["99", "139", "179"].every((z) => antwortAufPakete.includes(z)),
 );
@@ -466,8 +511,9 @@ const gekappt = await page.evaluate(() =>
 );
 check("Kein Text in der Paketkarte wird seitlich gekappt", gekappt.length === 0, gekappt.join(" | "));
 
-// Nicht nur "passt rein": eine Zusatzzeile, die auf dem Handy drei Zeilen
-// braucht, hat ein Wort mitten durchgebrochen und liest sich schlecht.
+// Nicht nur "passt rein". Drei Zeilen sind fuer ein deutsches Kompositum in
+// einer 130px-Spalte normal; ab vier steckt ein mitten durchgebrochenes Wort
+// dahinter, und genau das war der Fehler, den diese Pruefung gefunden hat.
 const langeZeilen = await page.evaluate(() =>
   [...document.querySelectorAll(".offer-add")]
     .map((z) => {
@@ -475,12 +521,12 @@ const langeZeilen = await page.evaluate(() =>
       if (!text) return null;
       const lh = parseFloat(getComputedStyle(text).lineHeight);
       const n = Math.round(z.getBoundingClientRect().height / lh);
-      return n > 2 ? `${z.textContent?.trim().slice(0, 30)} (${n} Zeilen)` : null;
+      return n > 3 ? `${z.textContent?.trim().slice(0, 30)} (${n} Zeilen)` : null;
     })
     .filter(Boolean),
 );
 check(
-  "Keine Zusatzzeile bricht auf dem Handy dreizeilig um",
+  "Keine Zusatzzeile bricht auf dem Handy vierzeilig um",
   langeZeilen.length === 0,
   langeZeilen.join(" | "),
 );

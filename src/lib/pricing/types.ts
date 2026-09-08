@@ -79,6 +79,12 @@ export interface OpenItem {
 export interface CoveredItem {
   label: string;
   packageLabel: string;
+  /**
+   * Bei mengenabhängigen Leistungen: das Freikontingent und was davon
+   * genutzt wird — "bis 10 m² Glas enthalten, 8 m² gewählt". Bei pauschalen
+   * Leistungen leer.
+   */
+  detail?: string;
 }
 
 export interface Quote {
