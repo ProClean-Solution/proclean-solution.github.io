@@ -60,6 +60,27 @@ gestaltete Fläche, kein Theme-Fehler. Sie bringt ihren eigenen, helleren
 Goldton mit, weil der Theme-Akzent auf Schwarz nur knapp über die
 Kontrastschwelle kommt.
 
+**Der 3D-Raum** (`room-scene.tsx`, `room-viewer.tsx`) sitzt im Rechner und wächst
+mit dem Flächenregler: aus "150 m²" wird ein Raum mit Massen, Arbeitsplätzen und
+einem Boden, den man drehen kann. Prozedural aus der Quadratmeterzahl erzeugt,
+ohne eine einzige Asset-Datei — Three.js mit React Three Fiber, ohne `drei`
+(die Drehung sind zwanzig Zeilen, das Paket wären ein paar hundert Kilobyte).
+
+Der Boden wechselt über `clean` seine Rauheit: schmutzig ist matt und schluckt
+das Licht, sauber spiegelt. Das ist der sichtbare Unterschied, den die Arbeit macht.
+
+Three.js kostet rund 870 KB und darf deshalb **niemals** im ersten Laden stecken:
+
+- `next/dynamic` mit `ssr: false`
+- geladen erst, wenn ein `IntersectionObserver` den Rechner in Sichtweite meldet
+- bei `prefers-reduced-motion: reduce` gar nicht — dann zeigt eine massstäbliche
+  SVG-Grundriss-Skizze dieselbe Information
+- `roomFor()` liegt in `room-dimensions.ts` ohne three.js-Import, damit die
+  Beschriftung die Bibliothek nicht ins Hauptbündel zieht
+
+Gemessen: 831 KB JS beim ersten Laden, die 867 KB der 3D-Szene kommen erst beim
+Scrollen dazu.
+
 **Der Wisch** (`clean-sweep.tsx`) ist die einzige gepinnte Sektion: beim
 Scrollen fährt eine Kante über eine Fläche und lässt sie sauber zurück, die
 Beschriftung wechselt dabei von "Vorher" auf "Nachher". Zwei CSS-Verläufe

@@ -14,6 +14,7 @@ import {
 } from "@/lib/pricing/catalog";
 import { OutOfScopeError, calculateQuote, formatDuration, formatMoney } from "@/lib/pricing/engine";
 import type { Frequency, ObjectType, QuoteInput, Tariff } from "@/lib/pricing/types";
+import { RoomViewer } from "./room-viewer";
 import { cn } from "@/lib/utils";
 
 const FREQUENCIES: Frequency[] = ["woechentlich", "zweiwoechentlich", "monatlich", "einmalig"];
@@ -82,6 +83,12 @@ export function PriceCalculator({ className }: { className?: string }) {
           <p className="text-xs text-muted-foreground">
             Die Zimmerzahl spielt keine Rolle — wir rechnen nach Fläche und Zeit.
           </p>
+          {/* Der Raum wächst mit dem Regler. Aus "150 m²" wird eine Grösse,
+              die man sieht und drehen kann. */}
+          <RoomViewer
+            squareMeters={input.squareMeters}
+            className="mt-4 h-56 sm:h-72"
+          />
         </Field>
 
         <Field label="Tarif">
