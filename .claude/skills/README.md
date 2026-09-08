@@ -7,6 +7,7 @@ Design-, Motion- und Taste-Skills für Claude Code, aus öffentlichen GitHub-Rep
 | `ui-ux-pro-max` | `ui-ux-pro-max/` | https://github.com/nextlevelbuilder/ui-ux-pro-max-skill | `4aad058` (2026-09-06), v2.13.0 | MIT (`ui-ux-pro-max/LICENSE`) |
 | `impeccable` | `impeccable/` | https://github.com/pbakaus/impeccable | `2bc2879` (2026-09-08), v4.2.2 | Apache 2.0 (`impeccable/LICENSE`, `impeccable/NOTICE.md`) |
 | `taste` | `taste/` | https://github.com/senlindesign/taste-skill | `6dce223` (2026-07-07) | MIT laut README-Badge (keine LICENSE-Datei im Upstream-Repo) |
+| `framer-motion` | `framer-motion/` | https://github.com/Schoepplake/framer-motion-skill | `1d984d5` (2026-03-20) | MIT laut README (keine LICENSE-Datei im Upstream-Repo) |
 | `design-motion-principles` | `design-motion-principles/` | https://github.com/kylezantos/design-motion-principles | `4a9ca87` (2026-05-30) | MIT (`design-motion-principles/LICENSE`) |
 | `animate` | `animate/` | https://github.com/delphi-ai/animate-skill | `71bc617` (2026-01-28) | Keine Lizenzdatei im Upstream-Repo |
 
@@ -45,6 +46,17 @@ Die vier zugehörigen Subagenten liegen in `.claude/agents/`
 erzeugt `{domain}.md` + `{domain}.json` mit konkreten Tokens (Farben, Typo, Spacing,
 Radii, Shadows, Grid) und der „Taste-DNA" (Trigger → Decision → Reason → Evidence).
 **Benötigt den Playwright-MCP-Server** — siehe `.mcp.json` im Repo-Root.
+
+**framer-motion** — API-Referenz für die Motion-Library (v12+, ehemals Framer Motion)
+in React/Next.js: Imports nach dem Rebrand (`motion/react`, `motion/react-client` für
+Server Components), MotionValues, Transitions, `AnimatePresence`, Scroll-Linked und
+Layout-Animationen, Gestures, Drag, `useReducedMotion`, Performance-Regeln, typische
+Fehler und fertige Rezepte (Progress Bar, Animated Counter, Page Transition,
+Shimmer-Text).
+
+Ergänzt `animate/references/framer-motion.md`, das noch vom alten `framer-motion`-Paket
+ausgeht und weder `motion/react`, Server Components noch `useReducedMotion` kennt. Bei
+Widersprüchen gilt dieser Skill.
 
 **design-motion-principles** — Zwei Modi:
 - *Create*: interaktive Komponenten mit gezielter Motion bauen (`workflows/create.md`)
