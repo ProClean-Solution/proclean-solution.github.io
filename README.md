@@ -52,6 +52,80 @@ Diese Garantie ist in `engine.test.ts` festgeschrieben.
 
 Neue Fragen werden einfach in `knowledge.ts` ergänzt — der Index baut sich selbst.
 
+## Cinematic Intro
+
+Beim Öffnen der Startseite läuft ein scrollgesteuerter Markenfilm, der nahtlos
+in die bestehende Website übergeht. `src/components/intro/`.
+
+### Der Aufbau
+
+`IntroShell` umschliesst den **bestehenden** Hero — dieselbe Komponente, dieselbe
+Stelle im Dokument, eine H1. Der Hero liegt damit *hinter* dem Glas, nicht
+darunter. Deshalb wird die Website am Ende nicht eingeblendet, sondern durch das
+gereinigte Glas sichtbar. Es gibt keine zweite Fassung der Inhalte.
+
+Sechs Ebenen im gepinnten Bildschirm, von hinten nach vorn:
+bestehender Hero · dunkle Studiobühne · Glasscheibe · 3D-Szene · zwei Aussagen ·
+Scrollhinweis.
+
+### Die Timeline
+
+Vollständig am Scroll, nichts läuft von selbst. Jeder Frame berechnet **absolute**
+Werte aus dem Fortschritt statt zu inkrementieren — nur so fährt Rückwärtsscrollen
+den Film exakt zurück. Die Abschnitte stehen in `progress.ts`:
+
+| Fortschritt | Was passiert |
+|---|---|
+| 0–15 % | fast dunkel, nur Lichtkanten zeichnen die Silhouette |
+| 15–30 % | Flasche wird sichtbar, Kamera fährt näher |
+| 30–45 % | Drehung |
+| 45–60 % | Etikett dreht sich zur Kamera |
+| 60–70 % | Kippen, Düse zielt auf das Glas |
+| 70–80 % | Abzug, Sprühbeginn |
+| 80–90 % | Nebel, Tröpfchen treffen das Glas |
+| 88–100 % | Glas wird sauber, Website erscheint, Flasche fährt aus dem Bild |
+
+### Sprühnebel
+
+Ein einziges `THREE.Points` mit eigenem Shader (`spray.tsx`). Jedes Partikel trägt
+Richtung im Kegel, Startzeit, Lebensdauer, Grösse und Turbulenzphase als Attribut;
+die Bewegung rechnet der Vertex-Shader. Pro Frame wird auf der CPU **eine** Uniform
+gesetzt, kein Positionsarray umgeschrieben. Grössenverteilung `pow(random, 2.4)` —
+viele winzige, wenige grosse Tröpfchen. Dazu Tiefenabfall und weiche Auflösung.
+
+### Glas
+
+`GlassPane` plus `.intro-glass` in `globals.css`. Drei Schichten (Weichzeichner,
+Schlieren, Tröpfchen) teilen sich eine Maske aus vier Radialverläufen mit
+unterschiedlichem Tempo, verrechnet über `mask-composite: intersect`: wo *eine*
+Stelle sauber ist, fällt die Schicht weg. Das ergibt einen unregelmässigen Wisch
+statt einer Blende.
+
+**Ehrliche Grenze:** Echte Refraktion des Hintergrunds kann CSS nicht.
+`backdrop-filter` kann weichzeichnen und entsättigen, nicht verzerren. Die
+Verzerrung liegt deshalb über `feDisplacementMap` auf der Schmutzschicht selbst.
+
+### Platzhalter-Flasche
+
+`bottle.tsx` ist prozedural: Lathe-Silhouette, Flüssigkeit, Etikett als
+Canvas-Textur, Kragen, Sprühkopf, Abzug, Düse, Steigrohr.
+
+**Ein fertiges .glb tritt an genau einer Stelle ein**: im Block unter dem Kommentar
+`MODELL-TAUSCH`. Gruppe, Name und Ref bleiben, die Timeline greift nur auf die
+Gruppe und die benannten Teile zu (`body`, `liquid`, `label`, `head`, `trigger`,
+`nozzle`) — sie muss beim Tausch nicht angefasst werden.
+
+### Leistung
+
+- 3D wird erst **nach dem ersten Bild** geladen (`requestIdleCallback`).
+  Gemessen: 842 KB JS bis `load`, die 885 KB der Szene danach.
+- Nach dem Film wird der Canvas abgebaut und gibt seinen Speicher frei.
+- Schwächere Geräte behalten die volle Sequenz, nur sparsamer: 700 statt 2400
+  Partikel, gröbere Auflösung, kein Antialiasing, transparentes Material statt
+  Transmission, gröbere Geometrie. Kein Abschalten des Intros.
+- Bei `prefers-reduced-motion: reduce` läuft gar kein Film — die Website startet
+  direkt, und `IntroShell` reicht ihre Kinder unverändert durch.
+
 ## Design
 
 Abfolge dunkler "Bühnen" und heller Arbeitsflächen. Die Bühne (`.stage` in
@@ -59,6 +133,10 @@ Abfolge dunkler "Bühnen" und heller Arbeitsflächen. Die Bühne (`.stage` in
 gestaltete Fläche, kein Theme-Fehler. Sie bringt ihren eigenen, helleren
 Goldton mit, weil der Theme-Akzent auf Schwarz nur knapp über die
 Kontrastschwelle kommt.
+
+**Magnetische Knöpfe** (`magnetic.tsx`) an den zwei wichtigsten Schaltflächen,
+**Mask-Reveals** (`reveal.tsx`) an den grossen Überschriften. Bewusst nicht
+überall: Motion wirkt hochwertig, wenn sie selten ist.
 
 **Der 3D-Raum** (`room-scene.tsx`, `room-viewer.tsx`) sitzt im Rechner und wächst
 mit dem Flächenregler: aus "150 m²" wird ein Raum mit Massen, Arbeitsplätzen und

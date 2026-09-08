@@ -211,3 +211,113 @@ body {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   Cinematic Intro
+   Die Glasfläche vor der bestehenden Website. `--clean` läuft von 0 (blind)
+   bis 1 (klar) und wird von der Scroll-Timeline pro Frame gesetzt.
+   ========================================================================== */
+
+.intro-glass {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --clean: 0;
+  /* Wächst über die Bildschirmdiagonale hinaus, damit auch die Ecken frei werden */
+  --r: calc(var(--clean) * 78%);
+}
+
+/*
+  Die drei Schichten teilen sich dieselbe Maske. Wo sauber, fällt alles weg.
+  Vier Wischstellen mit unterschiedlichem Tempo und Versatz — ein einzelner
+  konzentrischer Kreis sieht nach Blende aus, nicht nach Wischen.
+*/
+.intro-glass__blur,
+.intro-glass__grime,
+.intro-glass__droplets {
+  position: absolute;
+  inset: -2%;
+  -webkit-mask-image:
+    radial-gradient(ellipse 120% 90% at 46% 54%, transparent 0 var(--r), #000 calc(var(--r) + 16%)),
+    radial-gradient(ellipse 90% 120% at 68% 38%, transparent 0 calc(var(--r) * 0.82), #000 calc(var(--r) * 0.82 + 18%)),
+    radial-gradient(ellipse 130% 70% at 28% 68%, transparent 0 calc(var(--r) * 0.9), #000 calc(var(--r) * 0.9 + 20%)),
+    radial-gradient(ellipse 70% 110% at 82% 76%, transparent 0 calc(var(--r) * 0.6), #000 calc(var(--r) * 0.6 + 22%));
+  mask-image:
+    radial-gradient(ellipse 120% 90% at 46% 54%, transparent 0 var(--r), #000 calc(var(--r) + 16%)),
+    radial-gradient(ellipse 90% 120% at 68% 38%, transparent 0 calc(var(--r) * 0.82), #000 calc(var(--r) * 0.82 + 18%)),
+    radial-gradient(ellipse 130% 70% at 28% 68%, transparent 0 calc(var(--r) * 0.9), #000 calc(var(--r) * 0.9 + 20%)),
+    radial-gradient(ellipse 70% 110% at 82% 76%, transparent 0 calc(var(--r) * 0.6), #000 calc(var(--r) * 0.6 + 22%));
+  /* Schnittmenge: wo EINE Wischstelle sauber ist, verschwindet die Schicht. */
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+.intro-glass__blur {
+  backdrop-filter: blur(14px) saturate(0.62) brightness(0.5) contrast(0.9);
+  -webkit-backdrop-filter: blur(14px) saturate(0.62) brightness(0.5) contrast(0.9);
+  background: rgba(10, 16, 24, 0.42);
+}
+
+/* Beschlag und Schlieren. Der Verzerrungsfilter liegt nur hier, nicht auf
+   dem Hintergrund — CSS kann den Backdrop nicht refraktieren. */
+.intro-glass__grime {
+  filter: url(#intro-smear);
+  /*
+    Deutlich zurückgenommen: mit voller Deckung und engen Streifen las sich
+    die Schicht als Stoffmuster über dem ganzen Bild, nicht als Schlieren auf
+    einer Scheibe. Schmutz auf Glas ist unregelmässig und schwach.
+  */
+  opacity: 0.5;
+  background-image:
+    radial-gradient(ellipse 40% 30% at 22% 30%, rgba(190, 210, 230, 0.16), transparent 70%),
+    radial-gradient(ellipse 35% 45% at 74% 62%, rgba(170, 195, 220, 0.14), transparent 72%),
+    radial-gradient(ellipse 50% 25% at 55% 84%, rgba(200, 215, 235, 0.1), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 12% 76%, rgba(200, 218, 238, 0.1), transparent 74%),
+    repeating-linear-gradient(
+      104deg,
+      rgba(205, 222, 240, 0.022) 0 6px,
+      transparent 6px 92px
+    );
+}
+
+/* Tröpfchen erscheinen erst, wenn der Nebel das Glas trifft. */
+.intro-glass__droplets {
+  opacity: var(--droplets, 0);
+  background-image:
+    radial-gradient(circle 3px at 30% 42%, rgba(226, 240, 255, 0.5), transparent),
+    radial-gradient(circle 2px at 44% 31%, rgba(226, 240, 255, 0.42), transparent),
+    radial-gradient(circle 4px at 58% 48%, rgba(226, 240, 255, 0.46), transparent),
+    radial-gradient(circle 2px at 66% 36%, rgba(226, 240, 255, 0.4), transparent),
+    radial-gradient(circle 3px at 38% 58%, rgba(226, 240, 255, 0.44), transparent),
+    radial-gradient(circle 2px at 52% 66%, rgba(226, 240, 255, 0.38), transparent),
+    radial-gradient(circle 3px at 71% 57%, rgba(226, 240, 255, 0.42), transparent),
+    radial-gradient(circle 2px at 24% 51%, rgba(226, 240, 255, 0.36), transparent);
+}
+
+/* Die Bühne, auf der der Film läuft: dunkler Studioraum vor der Website. */
+.intro-stage {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 45%, #0e1620 0%, #070a0e 55%, #04060a 100%);
+  opacity: var(--stage-opacity, 1);
+}
+
+/* Grosse Aussagen im Film. Nur zwei, scrollgesteuert. */
+.intro-line {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-wrap: balance;
+  color: #eef5ff;
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.7);
+}
+
+/* Der Hinweis, dass gescrollt werden muss. Ohne ihn stehen Leute still. */
+@keyframes intro-hint {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50% { transform: translateY(5px); opacity: 1; }
+}
+.intro-hint {
+  animation: intro-hint 2.2s ease-in-out infinite;
+}

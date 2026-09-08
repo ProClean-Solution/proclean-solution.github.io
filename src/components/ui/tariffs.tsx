@@ -7,6 +7,7 @@ import { business } from "@/config/business";
 import { INCLUDED_TASKS, TARIFFS } from "@/lib/pricing/catalog";
 import { calculateQuote, formatMoney } from "@/lib/pricing/engine";
 import type { QuoteInput } from "@/lib/pricing/types";
+import { RevealLines } from "./reveal";
 import { cn } from "@/lib/utils";
 
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
@@ -83,7 +84,10 @@ export function Tariffs() {
         <p className="text-xs font-semibold tracking-[0.3em] text-[var(--stage-dim)] uppercase">
           Tarife
         </p>
-        <h2 className="display mt-5 text-4xl sm:text-6xl">Zwei Wege. Ein Preis pro Stunde.</h2>
+        <RevealLines
+          lines={["Zwei Wege.", "Ein Preis pro Stunde."]}
+          className="display mt-5 text-4xl sm:text-6xl"
+        />
         <p className="mt-5 max-w-xl text-lg leading-relaxed text-[var(--stage-dim)]">
           Beide enthalten dieselbe Arbeit. Der Unterschied ist nur, ob Sie sich binden.
         </p>

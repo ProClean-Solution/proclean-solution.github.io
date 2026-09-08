@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { business } from "@/config/business";
 import { TARIFFS } from "@/lib/pricing/catalog";
 import { formatMoney } from "@/lib/pricing/engine";
+import { Magnetic } from "./magnetic";
 
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
 
@@ -85,18 +86,19 @@ export function Hero() {
         </p>
 
         <div className="hero-actions mt-10 flex flex-wrap items-center gap-3">
-          <a
+          {/* Magnetisch: die beiden wichtigsten Knöpfe der Seite, sonst nichts. */}
+          <Magnetic
             href="#rechner"
-            className="rounded-full bg-[var(--stage-fg)] px-7 py-3.5 text-sm font-semibold text-[var(--stage-bg)] transition-transform duration-300 hover:scale-[1.03]"
+            className="inline-block rounded-full bg-[var(--stage-fg)] px-7 py-3.5 text-sm font-semibold text-[var(--stage-bg)]"
           >
             Preis berechnen
-          </a>
-          <a
+          </Magnetic>
+          <Magnetic
             href={`tel:${business.contact.phone.replace(/\s/g, "")}`}
-            className="glass glass-hover rounded-full px-7 py-3.5 text-sm font-semibold"
+            className="glass glass-hover inline-block rounded-full px-7 py-3.5 text-sm font-semibold"
           >
             {business.contact.phone}
-          </a>
+          </Magnetic>
         </div>
 
         <dl className="hero-facts mt-16 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--stage-line)] sm:grid-cols-3">

@@ -1,6 +1,7 @@
 import { Assistant } from "@/components/ui/assistant";
 import { CleanSweep } from "@/components/ui/clean-sweep";
 import { Hero } from "@/components/ui/hero";
+import { IntroShell } from "@/components/intro/intro-shell";
 import { PriceCalculator } from "@/components/ui/price-calculator";
 import { SmoothScroll } from "@/components/ui/smooth-scroll";
 import { Tariffs } from "@/components/ui/tariffs";
@@ -18,7 +19,15 @@ export default function Home() {
     <>
       <SmoothScroll />
       <main id="inhalt">
-        <Hero />
+        {/*
+          Der bestehende Hero, unverändert. IntroShell legt den Film davor und
+          macht ihn zu dem, was am Ende durch das gereinigte Glas sichtbar wird.
+          Ohne den Film (reduzierte Bewegung) reicht die Hülle die Komponente
+          unverändert durch.
+        */}
+        <IntroShell>
+          <Hero />
+        </IntroShell>
         <CleanSweep />
         <Tariffs />
 

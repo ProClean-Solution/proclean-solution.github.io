@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { RevealLines } from "./reveal";
 
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
 
@@ -72,9 +73,10 @@ export function CleanSweep() {
       aria-label="Eine Stunde, hundert Quadratmeter"
     >
       <div className="mx-auto w-full max-w-5xl">
-        <h2 className="display max-w-2xl text-[clamp(2rem,5.5vw,3.75rem)]">
-          Eine Stunde. Hundert Quadratmeter.
-        </h2>
+        <RevealLines
+          lines={["Eine Stunde.", "Hundert Quadratmeter."]}
+          className="display max-w-2xl text-[clamp(2rem,5.5vw,3.75rem)]"
+        />
         <p className="mt-4 max-w-lg text-base leading-relaxed text-[var(--stage-dim)] sm:text-lg">
           Der Preis steht vor dem ersten Termin fest. Die Zimmerzahl ändert nichts daran.
         </p>
