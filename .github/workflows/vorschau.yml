@@ -1,4 +1,7 @@
-# Live-Vorschau: https://riantetova.github.io/ProClean-Solution/
+# Live-Vorschau. Die Adresse ergibt sich aus dem Ort des Repositorys:
+#   Riantetova/ProClean-Solution              -> riantetova.github.io/ProClean-Solution/
+#   procleansolution/procleansolution.github.io -> procleansolution.github.io/
+# Der Build leitet den Basispfad selbst daraus ab.
 #
 # Die Seite läuft vollständig im Browser — kein Server, keine API-Routen,
 # keine Server Actions. Genau die Entscheidung, die den Betrieb kostenlos
@@ -65,15 +68,33 @@ jobs:
       - name: Statische Version bauen
         run: |
           set -euo pipefail
+
+          # Der Basispfad wird NICHT von Hand gepflegt, sondern aus dem
+          # Repository abgeleitet. Sonst zeigt nach einem Umzug oder einer
+          # Umbenennung jeder Pfad ins Leere und die Seite lädt ohne
+          # Stylesheet — ein Fehler, den man erst im Browser sieht.
+          besitzer="${GITHUB_REPOSITORY%%/*}"
+          repo="${GITHUB_REPOSITORY#*/}"
+          besitzer_klein="$(echo "$besitzer" | tr '[:upper:]' '[:lower:]')"
+          repo_klein="$(echo "$repo" | tr '[:upper:]' '[:lower:]')"
+
           if [ -n "$PAGES_DOMAIN" ]; then
-            # Eigene Domain: die Seite liegt an der Wurzel, kein Präfix.
-            export PAGES_BASE=""
+            # Eigene Domain: Seite an der Wurzel.
+            basis=""
+            grund="eigene Domain $PAGES_DOMAIN"
+          elif [ "$repo_klein" = "${besitzer_klein}.github.io" ]; then
+            # Benutzer- oder Organisationsseite: ebenfalls an der Wurzel.
+            basis=""
+            grund="Organisationsseite"
           else
-            # Projektseiten liegen unter /<Repositoryname>/.
-            export PAGES_BASE="/ProClean-Solution"
+            # Projektseite: liegt unter /<Repositoryname>/.
+            basis="/$repo"
+            grund="Projektseite"
           fi
-          echo "Basispfad: '${PAGES_BASE}'"
-          STATIC_EXPORT=1 npx next build
+
+          echo "Basispfad: '${basis}'  (${grund})"
+          STATIC_EXPORT=1 PAGES_BASE="$basis" npx next build
+
           if [ -n "$PAGES_DOMAIN" ]; then
             echo "$PAGES_DOMAIN" > out/CNAME
             echo "CNAME geschrieben: $PAGES_DOMAIN"

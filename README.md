@@ -19,6 +19,21 @@ Jeder Push auf den Standardbranch baut und veröffentlicht neu; Tests und
 Typprüfung laufen davor. Möglich ist das, weil die Seite vollständig im
 Browser läuft — kein Server, keine API-Routen, keine Server Actions.
 
+### Adresse
+
+Der Basispfad wird nicht von Hand gepflegt, sondern im Build aus dem Ort des
+Repositorys abgeleitet:
+
+| Repository | Adresse | Basispfad |
+|---|---|---|
+| `Riantetova/ProClean-Solution` | riantetova.github.io/ProClean-Solution/ | `/ProClean-Solution` |
+| `procleansolution/procleansolution.github.io` | procleansolution.github.io/ | – |
+| beliebig, mit `PAGES_DOMAIN` | die eigene Domain | – |
+
+Ein Umzug oder eine Umbenennung braucht deshalb keine Codeänderung. Wichtig
+ist nur: für eine Adresse **ohne** Unterpfad muss das Repository exakt
+`<organisation>.github.io` heissen.
+
 ### Eigene Domain
 
 Im Workflow steht ganz oben `PAGES_DOMAIN`. Sobald dort eine Domain
