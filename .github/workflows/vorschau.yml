@@ -1,0 +1,74 @@
+# Live-Vorschau auf GitHub Pages.
+#
+# Die Seite läuft vollständig im Browser — kein Server, keine API-Routen,
+# keine Server Actions. Genau die Entscheidung, die den Betrieb kostenlos
+# macht, erlaubt es auch, sie als statische Version auszuliefern.
+#
+# Jeder Push auf den Standardbranch baut neu. Die Tests laufen vorher: eine
+# Vorschau, die kaputte Preise zeigt, ist schlimmer als keine.
+
+name: Live-Vorschau
+
+on:
+  push:
+    branches: [claude/emil-kowalski-skill-design-1tr9if]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nie zwei Veröffentlichungen gleichzeitig; laufende nicht abbrechen.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten
+        run: npm ci
+        env:
+          # playwright-core lädt von sich aus keinen Browser; das Flag
+          # verhindert nur, dass ein Unterpaket es doch versucht.
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+      - name: Preise und Antworten prüfen
+        run: npm test
+
+      - name: Typen prüfen
+        run: npm run typecheck
+
+      - name: Statische Version bauen
+        run: npx next build
+        env:
+          STATIC_EXPORT: "1"
+          # Projektseiten liegen unter /<Repositoryname>/.
+          PAGES_BASE: /ProClean-Solution
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  veroeffentlichen:
+    needs: bauen
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.veroeffentlichung.outputs.page_url }}
+    steps:
+      - id: veroeffentlichung
+        uses: actions/deploy-pages@v4

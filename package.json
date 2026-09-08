@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test \"src/lib/**/*.test.ts\"",
-    "test:e2e": "node e2e/smoke.mjs"
+    "test:e2e": "node e2e/smoke.mjs",
+    "preview": "STATIC_EXPORT=1 next build",
+    "preview:serve": "STATIC_EXPORT=1 next build && python3 -m http.server 3200 --directory out"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",
