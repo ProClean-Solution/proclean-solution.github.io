@@ -81,19 +81,24 @@ jobs:
           if [ -n "$PAGES_DOMAIN" ]; then
             # Eigene Domain: Seite an der Wurzel.
             basis=""
-            grund="eigene Domain $PAGES_DOMAIN"
+            adresse="https://$PAGES_DOMAIN"
+            grund="eigene Domain"
           elif [ "$repo_klein" = "${besitzer_klein}.github.io" ]; then
             # Benutzer- oder Organisationsseite: ebenfalls an der Wurzel.
             basis=""
+            adresse="https://${besitzer_klein}.github.io"
             grund="Organisationsseite"
           else
             # Projektseite: liegt unter /<Repositoryname>/.
             basis="/$repo"
+            adresse="https://${besitzer_klein}.github.io/${repo}"
             grund="Projektseite"
           fi
 
-          echo "Basispfad: '${basis}'  (${grund})"
-          STATIC_EXPORT=1 PAGES_BASE="$basis" npx next build
+          echo "Basispfad: '${basis}'  Adresse: ${adresse}  (${grund})"
+          # Die Adresse geht mit in den Build: kanonischer Verweis, Open Graph,
+          # Sitemap und strukturierte Daten brauchen sie absolut.
+          STATIC_EXPORT=1 PAGES_BASE="$basis" NEXT_PUBLIC_SITE_URL="$adresse" npx next build
 
           if [ -n "$PAGES_DOMAIN" ]; then
             echo "$PAGES_DOMAIN" > out/CNAME
