@@ -1,30 +1,35 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { KNOWLEDGE } from "./knowledge";
+import { KNOWLEDGE, UNCONFIRMED } from "./knowledge";
 import { answer, normalize, topQuestions } from "./engine";
 
 /** Echte Kundenformulierungen -> erwarteter Wissenseintrag. */
 const ERWARTUNGEN: Array<[string, string]> = [
   ["Was kostet das?", "preis-allgemein"],
   ["wie teuer ist eine reinigung", "preis-allgemein"],
-  ["Wieviel kostet putzen?", "preis-allgemein"],
-  ["gibt es rabatt wenn ihr regelmässig kommt", "preis-abo"],
+  ["was ist der stundensatz", "preis-allgemein"],
+  ["gibt es ein abo", "preis-abo"],
+  ["was kostet es mit mindestlaufzeit", "preis-abo"],
+  ["kostet es mehr wenn ich mehr zimmer habe", "preis-zimmer"],
+  ["kommt noch mwst dazu", "preis-mwst"],
+  ["was kostet fensterreinigung", "preis-fenster"],
   ["Was ist alles inklusive?", "leistung-inklusive"],
   ["muss ich putzmittel stellen", "leistung-inklusive"],
-  ["macht ihr endreinigung bei auszug", "leistung-endreinigung"],
+  ["werden die abfalleimer geleert", "leistung-inklusive"],
   ["Reinigen Sie auch Bueros?", "leistung-buero"],
-  ["putzt ihr fenster", "leistung-fenster"],
-  ["muss ich zuhause sein", "ablauf-schluessel"],
+  ["reinigt ihr privatwohnungen", "leistung-wohnung"],
+  ["macht ihr endreinigung bei auszug", "leistung-sonderfall"],
   ["wie lange dauert das", "ablauf-dauer"],
-  ["wie kann ich einen termin buchen", "termin-buchen"],
-  ["geht das auch kurzfristig", "termin-kurzfristig"],
-  ["kann ich absagen", "termin-absagen"],
+  ["muss ich anwesend sein", "ablauf-schluessel"],
+  ["koennt ihr abends reinigen", "ablauf-wann"],
+  ["wie komme ich zu einem termin", "termin-buchen"],
+  ["kann ich einen termin verschieben", "termin-absagen"],
+  ["arbeitet ihr in zuerich", "termin-gebiet"],
   ["seid ihr versichert", "vertrauen-versicherung"],
   ["was wenn ich unzufrieden bin", "vertrauen-qualitaet"],
   ["wie bezahle ich", "organisation-bezahlen"],
   ["wann seid ihr erreichbar", "organisation-zeiten"],
-  ["benutzt ihr bio mittel", "organisation-umwelt"],
-  ["in welchem gebiet arbeitet ihr", "termin-gebiet"],
+  ["welche reinigungsmittel benutzt ihr", "organisation-umwelt"],
 ];
 
 test("normalize faltet Umlaute und Satzzeichen", () => {
@@ -93,6 +98,50 @@ test("Wissensbasis ist konsistent", () => {
     assert.ok(e.answer.length > 40, `Antwort zu knapp: ${e.id}`);
     assert.ok(e.keywords.length >= 3, `zu wenige Stichwoerter: ${e.id}`);
   }
+});
+
+test("REGRESSION: Fensterfragen bekommen nie die allgemeine Preisauskunft", () => {
+  // Gefunden am 8.9.2026: "was kostet fensterreinigung" landete auf
+  // preis-allgemein und nannte CHF 99 pro Stunde — obwohl Fenster darin
+  // ausdruecklich NICHT enthalten sind. Eine falsche Preisauskunft ist
+  // schlimmer als gar keine.
+  const fragen = [
+    "was kostet fensterreinigung",
+    "was kostet die fensterreinigung",
+    "preis fensterreinigung",
+    "fenster preis",
+    "wieviel kostet fenster putzen",
+  ];
+  for (const f of fragen) {
+    const r = answer(f);
+    assert.notEqual(
+      r.matched?.id,
+      "preis-allgemein",
+      `"${f}" bekommt den allgemeinen Stundenpreis statt der Fensterauskunft`,
+    );
+  }
+});
+
+test("seltene Woerter schlagen haeufige", () => {
+  // "kostet" steht in vielen Eintraegen, "zimmer" nur in einem.
+  const r = answer("was kostet das mit mehreren zimmern");
+  assert.equal(r.matched?.id ?? r.suggestions[0]?.id, "preis-zimmer");
+});
+
+test("jeder Eintrag traegt einen Belegstatus", () => {
+  for (const e of KNOWLEDGE) {
+    assert.ok(["bestaetigt", "entwurf"].includes(e.status), `${e.id} ohne Status`);
+  }
+  // Diese Zahl soll auffallen und schrumpfen, bis sie null ist.
+  assert.ok(UNCONFIRMED.length <= 13, `${UNCONFIRMED.length} unbestaetigte Eintraege`);
+});
+
+test("bestaetigte Preisaussagen nennen die echten Zahlen", () => {
+  const preis = KNOWLEDGE.find((e) => e.id === "preis-allgemein");
+  assert.ok(preis?.answer.includes("99"), "Stundenpreis fehlt");
+  const abo = KNOWLEDGE.find((e) => e.id === "preis-abo");
+  assert.ok(abo?.answer.includes("82.50"), "Abopreis fehlt");
+  assert.ok(abo?.answer.includes("330"), "Abo-Monatspreis fehlt");
 });
 
 test("topQuestions liefert echte Eintraege", () => {

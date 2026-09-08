@@ -16,11 +16,11 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: `${business.name} — Reinigung mit Festpreis und Online-Termin`,
+    default: `${business.name} — Büroreinigung in ${business.serviceArea.label}`,
     template: `%s | ${business.name}`,
   },
   description:
-    "Unterhalts-, Grund- und Endreinigung mit transparentem Preis in unter einer Minute. Termin online buchen, feste Ansprechpartner, versichert.",
+    "Büro- und Wohnungsreinigung ab Kloten. CHF 99.– pro Stunde, im Abo CHF 82.50. Preis in unter einer Minute berechnen.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

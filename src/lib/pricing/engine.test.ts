@@ -1,116 +1,153 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { business } from "@/config/business";
-import { SERVICES } from "./catalog";
-import { OutOfScopeError, calculateQuote, formatDuration } from "./engine";
+import { MAX_SQM_ONLINE, TARIFFS, WEEKS_PER_MONTH } from "./catalog";
+import { OutOfScopeError, calculateQuote, estimateMinutes, formatMoney } from "./engine";
 import type { QuoteInput } from "./types";
 
-const base: QuoteInput = {
-  service: "unterhaltsreinigung",
-  squareMeters: 80,
-  bathrooms: 1,
-  frequency: "einmalig",
-  condition: "normal",
+/** Florijans Referenzfall: 100 m² Büro, 2 Nasszellen, Zürich, wöchentlich. */
+const referenz: QuoteInput = {
+  objectType: "buero",
+  squareMeters: 100,
+  tariff: "standard",
+  frequency: "woechentlich",
   extras: [],
-  distanceKm: 5,
+  distanceKm: 10,
 };
 
-test("Summe der Positionen ergibt exakt den Nettobetrag", () => {
-  const q = calculateQuote({ ...base, extras: ["fenster", "backofen"], bathrooms: 2, distanceKm: 25 });
-  const sum = q.lines.reduce((s, l) => s + l.amountCents, 0);
-  assert.equal(sum, q.netCents);
+test("REFERENZ: 100 m² Büro wöchentlich kostet CHF 99.00 pro Termin", () => {
+  const q = calculateQuote(referenz);
+  assert.equal(q.totalPerVisitCents, 9900, `war ${formatMoney(q.totalPerVisitCents)}`);
 });
 
-test("Brutto = Netto + USt, alles ganzzahlig in Cent", () => {
-  const q = calculateQuote(base);
-  assert.equal(q.netCents + q.vatCents, q.grossCents);
-  for (const v of [q.netCents, q.vatCents, q.grossCents]) {
-    assert.ok(Number.isInteger(v), `${v} ist nicht ganzzahlig`);
+test("REFERENZ: derselbe Fall kostet CHF 396.00 im Monat", () => {
+  const q = calculateQuote(referenz);
+  assert.equal(q.perMonthCents, 39600, `war ${formatMoney(q.perMonthCents ?? 0)}`);
+});
+
+test("REFERENZ: im Abo CHF 82.50 pro Termin und CHF 330.00 im Monat", () => {
+  const q = calculateQuote({ ...referenz, tariff: "abo12" });
+  assert.equal(q.totalPerVisitCents, 8250, `war ${formatMoney(q.totalPerVisitCents)}`);
+  assert.equal(q.perMonthCents, 33000, `war ${formatMoney(q.perMonthCents ?? 0)}`);
+});
+
+test("REFERENZ: 150 m² sind 1,5 Stunden und im Abo CHF 123.75", () => {
+  const q = calculateQuote({ ...referenz, squareMeters: 150, tariff: "abo12" });
+  assert.equal(q.durationMinutes, 90);
+  assert.equal(q.totalPerVisitCents, 12375, `war ${formatMoney(q.totalPerVisitCents)}`);
+});
+
+test("REFERENZ: 150 m² im Standardtarif kosten CHF 148.50", () => {
+  const q = calculateQuote({ ...referenz, squareMeters: 150 });
+  assert.equal(q.totalPerVisitCents, 14850, `war ${formatMoney(q.totalPerVisitCents)}`);
+});
+
+test("REFERENZ: 100 m² sind eine Stunde Arbeit", () => {
+  assert.equal(calculateQuote(referenz).durationMinutes, 60);
+});
+
+test("Zimmerzahl kommt in der Eingabe gar nicht vor", () => {
+  // Absichtlich als Typprüfung formuliert: es gibt kein Feld dafür.
+  const keys = Object.keys(referenz);
+  assert.ok(!keys.some((k) => /zimmer|room|bath|nasszelle/i.test(k)));
+});
+
+test("Doppelte Fläche kostet doppelt so viel", () => {
+  const einfach = calculateQuote(referenz);
+  const doppelt = calculateQuote({ ...referenz, squareMeters: 200 });
+  assert.equal(doppelt.totalPerVisitCents, einfach.totalPerVisitCents * 2);
+  assert.equal(doppelt.durationMinutes, 120);
+});
+
+test("Mindestens eine Stunde wird berechnet", () => {
+  const klein = calculateQuote({ ...referenz, squareMeters: 20 });
+  assert.equal(klein.durationMinutes, 60);
+  assert.equal(klein.totalPerVisitCents, 9900);
+});
+
+test("Dauer läuft in Viertelstunden", () => {
+  for (const sqm of [20, 55, 100, 137, 180, 250, 300]) {
+    assert.equal(estimateMinutes(sqm) % 15, 0, `${sqm} m² ergibt krumme Minuten`);
   }
-  assert.equal(q.vatCents, Math.round(q.netCents * business.vatRate));
 });
 
-test("Engine ist deterministisch", () => {
-  const a = calculateQuote({ ...base, extras: ["teppich", "fenster"] });
-  const b = calculateQuote({ ...base, extras: ["fenster", "teppich"] });
-  assert.deepEqual(a, b, "Reihenfolge der Extras darf das Ergebnis nicht ändern");
+test("Abo ist immer günstiger als Standard, nie umgekehrt", () => {
+  for (const sqm of [20, 60, 100, 150, 220, 300]) {
+    const std = calculateQuote({ ...referenz, squareMeters: sqm, tariff: "standard" });
+    const abo = calculateQuote({ ...referenz, squareMeters: sqm, tariff: "abo12" });
+    assert.ok(abo.totalPerVisitCents < std.totalPerVisitCents, `bei ${sqm} m² nicht günstiger`);
+  }
 });
 
-test("Mindestauftragswert wird nie unterschritten", () => {
-  const q = calculateQuote({ ...base, squareMeters: 10, distanceKm: 1 });
-  const beforeDiscount = q.lines
-    .filter((l) => !l.label.startsWith("Rabatt"))
-    .reduce((s, l) => s + l.amountCents, 0);
-  assert.ok(
-    beforeDiscount >= SERVICES.unterhaltsreinigung.minimumCents,
-    `${beforeDiscount} liegt unter dem Mindestauftragswert`,
+test("Der Aborabatt beträgt durchgehend 16,67 Prozent", () => {
+  const std = TARIFFS.standard.hourlyCents;
+  const abo = TARIFFS.abo12.hourlyCents;
+  const rabatt = (std - abo) / std;
+  assert.ok(Math.abs(rabatt - 0.1667) < 0.0005, `Rabatt ist ${(rabatt * 100).toFixed(2)} %`);
+});
+
+test("Summe der Positionen ergibt exakt den Terminpreis", () => {
+  const q = calculateQuote({ ...referenz, squareMeters: 150, distanceKm: 30 });
+  assert.equal(
+    q.lines.reduce((s, l) => s + l.amountCents, 0),
+    q.perVisitCents,
   );
 });
 
-test("Höhere Frequenz senkt den Preis pro Termin, monoton", () => {
-  const preise = (["einmalig", "monatlich", "zweiwoechentlich", "woechentlich"] as const).map(
-    (frequency) => calculateQuote({ ...base, frequency }).grossCents,
-  );
-  for (let i = 1; i < preise.length; i++) {
-    assert.ok(preise[i] < preise[i - 1], `Rabattstufe ${i} ist nicht günstiger`);
-  }
+test("Ohne MWST-Pflicht wird keine Steuer ausgewiesen", () => {
+  const q = calculateQuote(referenz);
+  assert.equal(business.vatRegistered, false, "Annahme im Test veraltet");
+  assert.equal(q.vatCents, 0);
+  assert.equal(q.totalPerVisitCents, q.perVisitCents);
+  assert.ok(q.notices.some((n) => n.includes("keine Mehrwertsteuer")));
 });
 
-test("Schlechterer Zustand erhöht Preis und Dauer", () => {
-  const normal = calculateQuote({ ...base, condition: "normal" });
-  const stark = calculateQuote({ ...base, condition: "stark" });
-  const extrem = calculateQuote({ ...base, condition: "extrem" });
-  assert.ok(stark.grossCents > normal.grossCents);
-  assert.ok(extrem.grossCents > stark.grossCents);
-  assert.ok(extrem.durationMinutes > normal.durationMinutes);
+test("Fensterreinigung wird nicht geschätzt, sondern als offen ausgewiesen", () => {
+  const q = calculateQuote({ ...referenz, extras: ["fenster"] });
+  assert.equal(q.openItems.length, 1);
+  assert.equal(q.openItems[0].label, "Fensterreinigung");
+  // Der Terminpreis darf sich dadurch nicht verändern.
+  assert.equal(q.totalPerVisitCents, calculateQuote(referenz).totalPerVisitCents);
 });
 
-test("Mehr Fläche kostet nie weniger", () => {
-  let vorher = 0;
-  for (let sqm = 20; sqm <= 400; sqm += 20) {
-    const q = calculateQuote({ ...base, squareMeters: sqm });
-    assert.ok(q.grossCents >= vorher, `Preissprung nach unten bei ${sqm} m²`);
-    vorher = q.grossCents;
-  }
+test("Einmalige Reinigung hat keinen Monatspreis", () => {
+  const q = calculateQuote({ ...referenz, frequency: "einmalig" });
+  assert.equal(q.perMonthCents, null);
+  assert.equal(q.visitsPerMonth, 0);
 });
 
-test("Dauer ist mindestens 60 Minuten und auf 15 Minuten gerundet", () => {
-  const q = calculateQuote({ ...base, squareMeters: 10 });
-  assert.ok(q.durationMinutes >= 60);
-  assert.equal(q.durationMinutes % 15, 0);
+test("Monatspreis folgt der Vier-Wochen-Rechnung", () => {
+  const q = calculateQuote(referenz);
+  assert.equal(q.visitsPerMonth, WEEKS_PER_MONTH);
+  assert.equal(q.perMonthCents, q.totalPerVisitCents * WEEKS_PER_MONTH);
 });
 
-test("Außerhalb des Einzugsgebiets wird kein Preis erfunden", () => {
+test("Ausserhalb des Gebiets wird kein Preis erfunden", () => {
   assert.throws(
-    () => calculateQuote({ ...base, distanceKm: 120 }),
+    () => calculateQuote({ ...referenz, distanceKm: 80 }),
     (e: unknown) => e instanceof OutOfScopeError && e.reason === "distance",
   );
   assert.throws(
-    () => calculateQuote({ ...base, squareMeters: 2000 }),
+    () => calculateQuote({ ...referenz, squareMeters: MAX_SQM_ONLINE + 1 }),
     (e: unknown) => e instanceof OutOfScopeError && e.reason === "area",
   );
 });
 
-test("Doppelte Extras werden nur einmal berechnet", () => {
-  const einfach = calculateQuote({ ...base, extras: ["backofen"] });
-  const doppelt = calculateQuote({ ...base, extras: ["backofen", "backofen"] });
-  assert.equal(doppelt.grossCents, einfach.grossCents);
+test("Engine ist deterministisch", () => {
+  const a = calculateQuote({ ...referenz, extras: ["fenster"] });
+  const b = calculateQuote({ ...referenz, extras: ["fenster", "fenster"] });
+  assert.deepEqual(a, b);
 });
 
-test("Jedes Angebot trägt einen Unschärfe-Hinweis", () => {
-  const q = calculateQuote(base);
-  assert.ok(q.notices.some((n) => n.includes("Richtpreis")));
-});
-
-test("Alle Leistungen im Katalog sind berechenbar", () => {
-  for (const id of Object.keys(SERVICES) as (keyof typeof SERVICES)[]) {
-    const q = calculateQuote({ ...base, service: id });
-    assert.ok(q.grossCents > 0, `${id} ergibt keinen Preis`);
+test("Beträge sind ganzzahlige Rappen", () => {
+  const q = calculateQuote({ ...referenz, squareMeters: 137, tariff: "abo12" });
+  for (const v of [q.perVisitCents, q.vatCents, q.totalPerVisitCents]) {
+    assert.ok(Number.isInteger(v), `${v} ist nicht ganzzahlig`);
   }
+  for (const l of q.lines) assert.ok(Number.isInteger(l.amountCents));
 });
 
-test("formatDuration ist lesbar", () => {
-  assert.equal(formatDuration(90), "1 Std. 30 Min.");
-  assert.equal(formatDuration(120), "2 Std.");
-  assert.equal(formatDuration(45), "45 Min.");
+test("Preise werden in Franken formatiert", () => {
+  assert.ok(formatMoney(9900).includes("99"));
+  assert.ok(/CHF|Fr\./.test(formatMoney(9900)), formatMoney(9900));
 });

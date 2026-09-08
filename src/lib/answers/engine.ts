@@ -1,6 +1,6 @@
 import { business } from "@/config/business";
 import { KNOWLEDGE, type AnswerAction, type KnowledgeEntry } from "./knowledge";
-import { scoreEntry, tokenize, type ScoreTarget } from "./match";
+import { rarity, scoreEntry, tokenize, type ScoreTarget } from "./match";
 
 export type AnswerKind = "antwort" | "rueckfrage" | "weiterleitung";
 
@@ -37,7 +37,8 @@ interface IndexedEntry {
   target: ScoreTarget;
 }
 
-const INDEX: IndexedEntry[] = KNOWLEDGE.map((entry) => {
+/** Erster Durchgang: Begriffe je Eintrag sammeln. */
+const RAW = KNOWLEDGE.map((entry) => {
   const terms = new Map<string, number>();
   const phrases: string[] = [];
 
@@ -54,11 +55,40 @@ const INDEX: IndexedEntry[] = KNOWLEDGE.map((entry) => {
   // Wörter aus der Musterfrage zählen mit, aber schwächer.
   for (const token of tokenize(normalize(entry.question))) add(token, 0.55);
 
-  return {
-    entry,
-    target: { terms: [...terms].map(([token, weight]) => ({ token, weight })), phrases },
-  };
+  return { entry, terms, phrases };
 });
+
+/** Zweiter Durchgang: in wie vielen Einträgen kommt jedes Wort vor? */
+const DOC_FREQUENCY = new Map<string, number>();
+for (const { terms } of RAW) {
+  for (const token of terms.keys()) {
+    DOC_FREQUENCY.set(token, (DOC_FREQUENCY.get(token) ?? 0) + 1);
+  }
+}
+
+const weightOf = (token: string) => rarity(DOC_FREQUENCY.get(token) ?? 1, RAW.length);
+
+/**
+ * Dritter Durchgang: Gewichte mit der Seltenheit multiplizieren.
+ *
+ * Dadurch schlägt "fensterreinigung" (ein Eintrag) das Wort "kostet"
+ * (viele Einträge) — ohne diese Stufe beantwortet die Engine die Frage
+ * "was kostet Fensterreinigung" mit dem allgemeinen Stundenpreis, obwohl
+ * Fenster darin gerade nicht enthalten sind.
+ */
+const INDEX: IndexedEntry[] = RAW.map(({ entry, terms, phrases }) => ({
+  entry,
+  target: {
+    terms: [...terms].map(([token, weight]) => ({ token, weight: weight * weightOf(token) })),
+    phrases: phrases.map((text) => ({
+      text,
+      // Eine Phrase ist höchstens so aussagekräftig wie ihr häufigstes Wort.
+      weight:
+        0.8 *
+        Math.min(...text.split(" ").filter((w) => w.length >= 3).map(weightOf).concat(1)),
+    })),
+  },
+}));
 
 /** Schwellen, kalibriert gegen die Fragensammlung in engine.test.ts. */
 const DIRECT_SCORE = 0.42;
@@ -68,13 +98,16 @@ const WEAK_EVIDENCE = 0.7;
 
 /** Diese Kanäle stehen immer zur Verfügung — sie sind die Antwortgarantie. */
 function fallbackActions(): AnswerAction[] {
-  const actions: AnswerAction[] = [
-    { label: "Rückruf anfordern", href: "/kontakt" },
-    {
+  // Das Rückrufformular funktioniert immer. Telefon und WhatsApp kommen erst
+  // dazu, sobald die Nummern hinterlegt sind — ein leerer tel:-Link wäre eine
+  // tote Schaltfläche und würde die Antwortgarantie aushöhlen.
+  const actions: AnswerAction[] = [{ label: "Rückruf anfordern", href: "/kontakt" }];
+  if (business.contact.phone) {
+    actions.push({
       label: `Anrufen ${business.contact.phone}`,
       href: `tel:${business.contact.phone.replace(/\s/g, "")}`,
-    },
-  ];
+    });
+  }
   if (business.contact.whatsapp) {
     actions.push({ label: "WhatsApp", href: `https://wa.me/${business.contact.whatsapp}` });
   }
@@ -85,10 +118,10 @@ function fallbackActions(): AnswerAction[] {
 export function topQuestions(limit = 5): KnowledgeEntry[] {
   const order = [
     "preis-allgemein",
-    "termin-buchen",
+    "preis-abo",
     "leistung-inklusive",
-    "ablauf-schluessel",
-    "vertrauen-versicherung",
+    "termin-gebiet",
+    "preis-fenster",
   ];
   return order
     .map((id) => KNOWLEDGE.find((e) => e.id === id))
@@ -124,7 +157,7 @@ export function answer(rawQuestion: string): AnswerResult {
     ...scoreEntry(tokens, target, query),
   }))
     .filter((r) => r.evidence > 0)
-    .sort((a, b) => b.evidence - a.evidence || b.score - a.score);
+    .sort((a, b) => b.peak - a.peak || b.evidence - a.evidence || b.score - a.score);
 
   const best = ranked[0];
 
@@ -160,7 +193,7 @@ export function answer(rawQuestion: string): AnswerResult {
   // Kein Treffer: garantierte Weiterleitung an einen Menschen, niemals eine Sackgasse.
   return {
     kind: "weiterleitung",
-    text: `Diese Frage kann ich nicht sicher beantworten, und raten möchte ich nicht. Schreiben Sie sie uns kurz auf — ${business.responsePromise}. Oder rufen Sie an, ${business.hours.weekdays}.`,
+    text: `Diese Frage kann ich nicht sicher beantworten, und raten möchte ich nicht. Schreiben Sie sie uns kurz auf — ${business.responsePromise}.`,
     suggestions: topQuestions(3),
     actions: fallbackActions(),
     confidence: 0,

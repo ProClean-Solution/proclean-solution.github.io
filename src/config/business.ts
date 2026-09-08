@@ -1,21 +1,50 @@
 /**
- * Zentrale Stammdaten. ANNAHME: Deutschland / EUR / 19 % USt.
- * Für Österreich oder die Schweiz nur diese Datei anpassen —
- * Währung, Steuersatz und Locale werden nirgendwo sonst hartkodiert.
+ * Stammdaten ProClean Solution.
+ *
+ * Einzige Stelle für Firmierung, Währung, Steuer und Kontakt.
+ * Alles andere im Projekt liest hier.
  */
 export const business = {
   name: "ProClean Solution",
-  legalName: "ProClean Solution", // TODO: vollständige Firmierung eintragen
-  locale: "de-DE",
-  currency: "EUR",
-  vatRate: 0.19,
-  /** Preise werden Privatkunden gegenüber inkl. USt. angezeigt (PAngV). */
-  pricesIncludeVat: true,
+  owner: "Florijan Djeljilji",
+  address: {
+    street: "Balsbergweg 20",
+    zip: "8302",
+    city: "Kloten",
+    country: "CH",
+  },
 
+  locale: "de-CH",
+  currency: "CHF",
+
+  /**
+   * ANNAHME, bitte prüfen: nicht mehrwertsteuerpflichtig.
+   * In der Schweiz beginnt die MWST-Pflicht bei CHF 100'000 Jahresumsatz.
+   * Solange `vatRegistered` false ist, sind die Katalogpreise Endpreise und
+   * es wird keine Steuer ausgewiesen. Sobald du pflichtig wirst: auf true
+   * setzen — Rechner und Angebote weisen die MWST dann automatisch aus.
+   */
+  vatRegistered: false,
+  /** Schweizer Normalsatz seit 1.1.2024. */
+  vatRate: 0.081,
+
+  /**
+   * Explizit als string typisiert, nicht über `as const` verengt: sonst
+   * verengt TypeScript ein leeres Feld auf den Literaltyp "" und jede
+   * Prüfung `if (contact.phone)` kollabiert zu `never`.
+   */
   contact: {
-    phone: "+49 000 0000000", // TODO
-    email: "hallo@proclean-solution.de", // TODO
-    whatsapp: "", // optional
+    phone: "+41 76 250 05 99",
+    email: "", // TODO
+    whatsapp: "", // dieselbe Nummer? Dann hier "41762500599" eintragen
+  } as { phone: string; email: string; whatsapp: string },
+
+  /** Einzugsgebiet ab Kloten. */
+  serviceArea: {
+    label: "Zürich und Umgebung",
+    /** Ohne Zuschlag. Kloten–Zürich sind rund 10 km. */
+    freeRadiusKm: 20,
+    maxRadiusKm: 40,
   },
 
   hours: {
@@ -24,6 +53,5 @@ export const business = {
     sunday: "geschlossen",
   },
 
-  /** Reaktionszeit, die wir öffentlich zusagen. */
   responsePromise: "Antwort innerhalb von 24 Stunden an Werktagen",
 } as const;

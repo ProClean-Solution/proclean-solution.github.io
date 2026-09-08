@@ -5,8 +5,10 @@ Website mit Preisrechner, Terminbuchung und Kundenassistent.
 ## Stand
 
 **Phase 1 (Fundament) — begonnen.** Preis-Engine, Antwort-Engine, Designsystem und
-Startseite stehen und sind getestet. Buchungskalender, Admin-Bereich und die
-kinematische Ebene folgen.
+Startseite stehen und sind getestet (33 Unit-Tests, 19 Browser-Prüfungen).
+Buchungskalender, Admin-Bereich und die kinematische Ebene folgen.
+
+Standort Kloten, Einzugsgebiet Zürich und Umgebung. Währung CHF.
 
 ## Entwicklung
 
@@ -49,13 +51,40 @@ Diese Garantie ist in `engine.test.ts` festgeschrieben.
 
 Neue Fragen werden einfach in `knowledge.ts` ergänzt — der Index baut sich selbst.
 
+## Preismodell
+
+Nach Zeit, nicht nach Quadratmetern. Grundlage sind Florijans Angaben:
+
+| | Standard | Abo, 12 Monate |
+|---|---|---|
+| pro Stunde | CHF 99.00 | CHF 82.50 |
+| 100 m² wöchentlich, pro Termin | CHF 99.00 | CHF 82.50 |
+| 100 m² wöchentlich, pro Monat | CHF 396.00 | CHF 330.00 |
+| 150 m² (1,5 Std.), pro Termin | CHF 148.50 | CHF 123.75 |
+
+100 m² entsprechen einer Stunde. Die Zimmerzahl geht bewusst nicht in die
+Rechnung ein — es gibt kein Feld dafür. Enthalten sind Staubsaugen, Wischen,
+WC und Nasszellen, Abfalleimer, Tische und Türgriffe. Fensterreinigung kostet
+extra und hat noch keinen hinterlegten Preis: Der Rechner weist sie als offenen
+Punkt aus und schätzt nichts.
+
+Diese Zahlen stehen als Tests in `src/lib/pricing/engine.test.ts` — ändert
+jemand den Katalog, schlägt der Referenzfall fehl.
+
 ## Offene Punkte vor dem Livegang
 
-- [ ] **Preise ersetzen.** `catalog.ts` enthält Platzhalterwerte.
-- [ ] **Stammdaten ersetzen.** Telefon, E-Mail und Firmierung in `src/config/business.ts`.
-- [ ] **Land prüfen.** Angenommen sind Deutschland, EUR und 19 % USt.; für
-      Österreich oder die Schweiz nur `src/config/business.ts` anpassen.
-- [ ] Impressum, Datenschutzerklärung, AGB, Widerrufsbelehrung — anwaltlich prüfen lassen.
+- [ ] **Fensterpreis festlegen** — `EXTRAS.fenster.priceCents` in `catalog.ts`.
+      Solange `null`, führt Fensterreinigung zu einer Anfrage statt zu einem Preis.
+- [ ] **MWST prüfen** — angenommen ist *nicht* pflichtig (unter CHF 100'000
+      Jahresumsatz). Bei Pflicht `vatRegistered: true` setzen, dann weist der
+      Rechner 8,1 % aus.
+- [ ] **13 Antworten bestätigen** — alles mit `status: "entwurf"` in
+      `src/lib/answers/knowledge.ts` ist von mir plausibel formuliert, aber nicht
+      von Florijan bestätigt. Betrifft unter anderem Versicherung, Zahlungsart
+      und Schlüsselübergabe.
+- [ ] E-Mail-Adresse in `src/config/business.ts`.
+- [ ] Skalierung über 200 m² bestätigen — grosse Flächen gehen pro m² meist schneller.
+- [ ] Impressum, Datenschutzerklärung, AGB — anwaltlich prüfen lassen.
 - [ ] Buchungskalender mit Verfügbarkeiten, Fahrzeiten und Doppelbuchungsschutz.
 - [ ] Admin-Bereich für Buchungen, Preise und Personal.
 - [ ] Lokales SEO: LocalBusiness-Schema, Landingpages je Einzugsgebiet.

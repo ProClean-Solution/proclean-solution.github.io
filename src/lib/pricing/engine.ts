@@ -1,18 +1,17 @@
 import { business } from "@/config/business";
 import {
-  BATHROOM_MINUTES,
-  BATHROOM_SURCHARGE_CENTS,
-  CONDITION_FACTOR,
   EXTRAS,
-  FREQUENCY_DISCOUNT,
   FREQUENCY_LABEL,
-  MAX_SERVICE_KM,
-  MAX_SQM,
+  MAX_SQM_ONLINE,
+  MIN_MINUTES,
   MIN_SQM,
-  SERVICES,
+  OBJECT_LABEL,
+  SQM_PER_HOUR,
+  TARIFFS,
   TRAVEL_ZONES,
+  VISITS_PER_MONTH,
 } from "./catalog";
-import type { LineItem, Quote, QuoteInput } from "./types";
+import type { LineItem, OpenItem, Quote, QuoteInput } from "./types";
 
 export class OutOfScopeError extends Error {
   constructor(
@@ -24,134 +23,110 @@ export class OutOfScopeError extends Error {
   }
 }
 
-function travelZoneFor(distanceKm: number) {
-  return TRAVEL_ZONES.find((z) => distanceKm <= z.maxKm);
-}
-
-/** Kaufmännisch runden — Math.round kippt bei negativen Werten in die falsche Richtung. */
 function roundCents(value: number): number {
   return Math.sign(value) * Math.round(Math.abs(value));
 }
 
+/** Arbeitszeit in Minuten, auf Viertelstunden gerundet, mindestens eine Stunde. */
+export function estimateMinutes(squareMeters: number): number {
+  const raw = (squareMeters / SQM_PER_HOUR) * 60;
+  return Math.max(MIN_MINUTES, Math.round(raw / 15) * 15);
+}
+
 /**
- * Berechnet ein Angebot. Reine Funktion: gleiche Eingabe, gleiches Ergebnis,
- * keine Netzwerkaufrufe, kein Sprachmodell. Jede Preisauskunft im Projekt —
- * Rechner, Chat, internes Angebots-Tool — läuft durch genau diese Funktion.
+ * Berechnet ein Angebot.
+ *
+ * Reine Funktion: gleiche Eingabe, gleiches Ergebnis, kein Netzwerk, kein
+ * Sprachmodell. Jede Preisauskunft im Projekt läuft durch genau diese Funktion.
+ *
+ * Was keinen Onlinepreis hat, wird als `openItem` zurückgegeben statt geschätzt.
  */
 export function calculateQuote(input: QuoteInput): Quote {
-  const service = SERVICES[input.service];
-  if (!service) throw new Error(`Unbekannte Leistung: ${input.service}`);
+  const tariff = TARIFFS[input.tariff];
+  if (!tariff) throw new Error(`Unbekannter Tarif: ${input.tariff}`);
 
-  if (input.distanceKm > MAX_SERVICE_KM) {
+  if (input.distanceKm > business.serviceArea.maxRadiusKm) {
     throw new OutOfScopeError(
-      `Das Objekt liegt ${input.distanceKm} km entfernt und damit außerhalb unseres Einzugsgebiets von ${MAX_SERVICE_KM} km.`,
+      `Das Objekt liegt ${input.distanceKm} km von Kloten entfernt und damit ausserhalb unseres Einzugsgebiets von ${business.serviceArea.maxRadiusKm} km.`,
       "distance",
     );
   }
+
   const sqm = Math.round(input.squareMeters);
-  if (sqm < MIN_SQM || sqm > MAX_SQM) {
+  if (sqm < MIN_SQM || sqm > MAX_SQM_ONLINE) {
     throw new OutOfScopeError(
-      `Für ${sqm} m² erstellen wir ein individuelles Angebot; online rechnen wir von ${MIN_SQM} bis ${MAX_SQM} m².`,
+      `Für ${sqm} m² rechnen wir persönlich; online rechnen wir von ${MIN_SQM} bis ${MAX_SQM_ONLINE} m².`,
       "area",
     );
   }
 
-  const conditionFactor = CONDITION_FACTOR[input.condition];
   const lines: LineItem[] = [];
+  const openItems: OpenItem[] = [];
   const notices: string[] = [];
 
-  // 1. Grundpauschale
+  // 1. Reinigung nach Zeit
+  const durationMinutes = estimateMinutes(sqm);
+  const hours = durationMinutes / 60;
+  const cleaningCents = roundCents(hours * tariff.hourlyCents);
   lines.push({
-    label: "Grundpauschale",
-    amountCents: service.baseCents,
-    detail: "An- und Abfahrt, Rüstzeit, Reinigungsmittel",
+    label: `${OBJECT_LABEL[input.objectType]}, ${sqm} m²`,
+    amountCents: cleaningCents,
+    detail: `${formatHours(hours)} zu ${formatMoney(tariff.hourlyCents)} pro Stunde`,
   });
 
-  // 2. Fläche
-  const areaCents = roundCents(sqm * service.perSquareMeterCents * conditionFactor);
-  lines.push({
-    label: `${service.label}, ${sqm} m²`,
-    amountCents: areaCents,
-    detail:
-      conditionFactor === 1
-        ? undefined
-        : `inkl. Aufwandsfaktor ${conditionFactor.toFixed(2).replace(".", ",")}× für Zustand „${input.condition}“`,
-  });
-
-  // 3. Zusätzliche Bäder
-  const extraBathrooms = Math.max(0, Math.round(input.bathrooms) - 1);
-  if (extraBathrooms > 0) {
-    lines.push({
-      label: `${extraBathrooms} weitere${extraBathrooms === 1 ? "s" : ""} Bad`,
-      amountCents: roundCents(extraBathrooms * BATHROOM_SURCHARGE_CENTS * conditionFactor),
-    });
+  // 2. Anfahrt
+  const zone = TRAVEL_ZONES.find((z) => input.distanceKm <= z.maxKm);
+  if (zone && zone.surchargeCents > 0) {
+    lines.push({ label: `Anfahrt, ${zone.label}`, amountCents: zone.surchargeCents });
   }
 
-  // 4. Zusatzleistungen — Reihenfolge stabil halten, damit Angebote reproduzierbar sind
-  const uniqueExtras = [...new Set(input.extras)].sort();
-  for (const id of uniqueExtras) {
+  // 3. Zusatzleistungen. Ohne hinterlegten Preis wird nichts erfunden.
+  for (const id of [...new Set(input.extras)].sort()) {
     const extra = EXTRAS[id];
     if (!extra) continue;
-    lines.push({ label: extra.label, amountCents: extra.priceCents });
+    if (extra.priceCents === null) {
+      openItems.push({ label: extra.label, reason: extra.note });
+    } else {
+      lines.push({ label: extra.label, amountCents: extra.priceCents });
+    }
   }
 
-  // 5. Anfahrt
-  const zone = travelZoneFor(input.distanceKm);
-  if (zone && zone.surchargeCents > 0) {
-    lines.push({ label: `Anfahrt ${zone.label}`, amountCents: zone.surchargeCents });
-  }
+  const perVisitCents = lines.reduce((sum, l) => sum + l.amountCents, 0);
 
-  // 6. Mindestauftragswert vor Rabatt
-  let subtotal = lines.reduce((sum, l) => sum + l.amountCents, 0);
-  if (subtotal < service.minimumCents) {
-    lines.push({
-      label: "Mindestauftragswert",
-      amountCents: service.minimumCents - subtotal,
-      detail: `Für ${service.label} gilt ein Mindestauftragswert.`,
-    });
-    subtotal = service.minimumCents;
-  }
+  // 4. Steuer nur, wenn tatsächlich pflichtig
+  const vatCents = business.vatRegistered ? roundCents(perVisitCents * business.vatRate) : 0;
+  const totalPerVisitCents = perVisitCents + vatCents;
 
-  // 7. Frequenzrabatt
-  const discountRate = FREQUENCY_DISCOUNT[input.frequency];
-  if (discountRate > 0) {
-    const discount = -roundCents(subtotal * discountRate);
-    lines.push({
-      label: `Rabatt ${FREQUENCY_LABEL[input.frequency]} (${Math.round(discountRate * 100)} %)`,
-      amountCents: discount,
-    });
-    subtotal += discount;
-  } else {
+  // 5. Monatspreis nach der Vier-Wochen-Rechnung
+  const visitsPerMonth = VISITS_PER_MONTH[input.frequency];
+  const perMonthCents = visitsPerMonth > 0 ? totalPerVisitCents * visitsPerMonth : null;
+
+  // 6. Hinweise
+  if (tariff.commitmentMonths > 0) {
     notices.push(
-      "Bei regelmäßiger Reinigung sparen Sie bis zu 15 % — wöchentlich ist am günstigsten pro Termin.",
+      `Der Abopreis gilt bei ${tariff.commitmentMonths} Monaten Mindestlaufzeit. Danach jederzeit monatlich kündbar.`,
+    );
+  } else if (input.frequency !== "einmalig") {
+    const abo = TARIFFS.abo12;
+    const ersparnis = roundCents(hours * (tariff.hourlyCents - abo.hourlyCents));
+    notices.push(
+      `Mit dem Abo über 12 Monate zahlen Sie ${formatMoney(ersparnis)} weniger pro Termin.`,
     );
   }
-
-  // 8. Steuer
-  const netCents = subtotal;
-  const vatCents = roundCents(netCents * business.vatRate);
-  const grossCents = netCents + vatCents;
-
-  // 9. Dauer
-  let minutes = sqm * service.minutesPerSquareMeter * conditionFactor;
-  minutes += extraBathrooms * BATHROOM_MINUTES * conditionFactor;
-  for (const id of uniqueExtras) minutes += EXTRAS[id]?.minutes ?? 0;
-  const durationMinutes = Math.max(60, Math.round(minutes / 15) * 15);
-
-  // 10. Unschärfe: ohne Besichtigung ist die Schätzung gröber
-  const uncertaintyPercent = input.condition === "normal" ? 10 : 20;
-  notices.push(
-    `Richtpreis auf Basis Ihrer Angaben, ± ${uncertaintyPercent} %. Verbindlich wird der Preis nach kurzer Besichtigung oder anhand von Fotos.`,
-  );
+  if (!business.vatRegistered) {
+    notices.push("Endpreis, keine Mehrwertsteuer.");
+  }
 
   return {
-    input: { ...input, squareMeters: sqm, extras: uniqueExtras },
+    input: { ...input, squareMeters: sqm, extras: [...new Set(input.extras)].sort() },
     lines,
-    netCents,
-    vatCents,
-    grossCents,
     durationMinutes,
-    uncertaintyPercent,
+    perVisitCents,
+    perMonthCents,
+    visitsPerMonth,
+    vatCents,
+    totalPerVisitCents,
+    openItems,
     notices,
   };
 }
@@ -163,6 +138,11 @@ export function formatMoney(cents: number): string {
   }).format(cents / 100);
 }
 
+export function formatHours(hours: number): string {
+  if (Number.isInteger(hours)) return hours === 1 ? "1 Stunde" : `${hours} Stunden`;
+  return `${hours.toString().replace(".", ",")} Stunden`;
+}
+
 export function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -170,3 +150,5 @@ export function formatDuration(minutes: number): string {
   if (m === 0) return `${h} Std.`;
   return `${h} Std. ${m} Min.`;
 }
+
+export { FREQUENCY_LABEL, OBJECT_LABEL, TARIFFS };
