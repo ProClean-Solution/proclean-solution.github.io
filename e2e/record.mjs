@@ -83,12 +83,24 @@ if (bahn) {
   await page.waitForTimeout(900);
 }
 
-// Weiter durch den Rest der Seite
+// Weiter durch Rechner und Fragen
 const gesamt = await page.evaluate(
   () => document.documentElement.scrollHeight - window.innerHeight,
 );
-await scrolleBis(gesamt, 90, 45);
-await page.waitForTimeout(800);
+const abspann = await page.evaluate(() => {
+  const f = document.querySelector("footer");
+  return f ? f.getBoundingClientRect().top + window.scrollY : null;
+});
+if (abspann) {
+  await scrolleBis(abspann - vh * 0.6, 80, 45);
+  await page.waitForTimeout(400);
+  // Langsamer in den Abspann: der Boden zieht dort auf den Betrachter zu,
+  // und in normalem Tempo sieht man davon nichts.
+  await scrolleBis(gesamt, 55, 70);
+} else {
+  await scrolleBis(gesamt, 90, 45);
+}
+await page.waitForTimeout(1400);
 
 await page.close();
 await context.close();
