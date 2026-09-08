@@ -39,15 +39,21 @@ function Studio({ progressRef, lowPower }: SceneProps) {
     const enthuellung = smoothstep(beat(p, BEATS.reveal));
     const auftauchen = smoothstep(beat(p, BEATS.emerge));
 
+    /*
+      Deutlich heller als die erste Fassung. Das dunkle Studio bleibt, aber
+      das Produkt muss darin lesen: auf einem Handy im Tageslicht war von der
+      Flasche kaum etwas zu erkennen. Der Kontrast zum Hintergrund trägt die
+      Stimmung, nicht die Unterbelichtung des Motivs.
+    */
     if (rimLight.current) {
       // Kaltes Streiflicht zeichnet zuerst nur die Silhouette
-      rimLight.current.intensity = lerp(2, 26, enthuellung) + auftauchen * 14;
+      rimLight.current.intensity = lerp(4, 40, enthuellung) + auftauchen * 22;
     }
     if (keyLight.current) {
-      keyLight.current.intensity = lerp(0, 42, auftauchen);
+      keyLight.current.intensity = lerp(0, 78, auftauchen);
     }
     if (fillLight.current) {
-      fillLight.current.intensity = lerp(0, 9, auftauchen);
+      fillLight.current.intensity = lerp(0, 20, auftauchen);
     }
 
     // --- Flasche: Drehung, Logo zur Kamera, Kippen ---
@@ -120,7 +126,7 @@ function Studio({ progressRef, lowPower }: SceneProps) {
   return (
     <>
       {/* Dunkle Studioatmosphäre: fast schwarz, wenige kontrollierte Quellen */}
-      <ambientLight intensity={0.08} color="#7f9dc0" />
+      <ambientLight intensity={0.16} color="#7f9dc0" />
 
       {/* Kaltes Rim Light von hinten links — zeichnet die Kante */}
       <pointLight ref={rimLight} position={[-3.2, 1.6, -2.4]} intensity={2} color="#5b9fe0" distance={14} />
@@ -141,7 +147,7 @@ function Studio({ progressRef, lowPower }: SceneProps) {
 
       {/* Kleines hartes Licht nur für den Sprühkopf: dunkler Kunststoff
           braucht eine scharfe Reflexion, sonst liest man seine Form nicht. */}
-      <pointLight position={[1.5, 2.6, 2.2]} intensity={9} color="#ffffff" distance={7} />
+      <pointLight position={[1.5, 2.6, 2.2]} intensity={16} color="#ffffff" distance={8} />
 
       {/*
         Flasche und Sprühkegel sitzen in derselben Gruppe: der Strahl muss der
