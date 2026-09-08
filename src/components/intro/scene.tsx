@@ -56,8 +56,13 @@ function Studio({ progressRef, lowPower }: SceneProps) {
       const logo = smoothstep(beat(p, BEATS.logo));
       const zielen = smoothstep(beat(p, BEATS.aim));
 
-      // Startet halb abgewandt, dreht sich zum Betrachter, Etikett nach vorn
-      rig.current.rotation.y = lerp(-1.15, -0.42, drehung) + lerp(0, 0.42, logo);
+      /*
+        Startet halb abgewandt und endet in der Dreiviertelansicht, nicht
+        frontal. Frontal zeigte die Düse direkt in die Kamera — man schaute
+        ins Rohr, und der Abzug verschwand hinter dem Gehäuse. Erst schräg
+        liest man die Sprühmechanik, und das Etikett bleibt lesbar.
+      */
+      rig.current.rotation.y = lerp(-1.25, -0.8, drehung) + lerp(0, 0.35, logo);
 
       // Kippen: Düse senkt sich zur imaginären Glasfläche
       rig.current.rotation.x = lerp(0, 0.2, zielen);
@@ -84,7 +89,7 @@ function Studio({ progressRef, lowPower }: SceneProps) {
       // Abzug drücken
       const abzug = smoothstep(beat(p, BEATS.trigger));
       const trigger = rig.current.getObjectByName("trigger");
-      if (trigger) trigger.rotation.x = lerp(0.35, 0.05, abzug);
+      if (trigger) trigger.rotation.x = lerp(0.34, 0.06, abzug);
     }
 
     // --- Spray: läuft über Abzug, Nebel und Reinigung ---
@@ -101,10 +106,15 @@ function Studio({ progressRef, lowPower }: SceneProps) {
     */
     const hochformat = size.height / Math.max(1, size.width);
     const formatFaktor = hochformat > 1 ? 1 + (hochformat - 1) * 0.5 : 1;
-    const abstand = lerp(6.2, 4.1, nah) * formatFaktor;
+    const abstand = lerp(6.4, 4.7, nah) * formatFaktor;
     const winkel = lerp(-0.16, 0.1, nah);
-    camera.position.set(Math.sin(winkel) * abstand, lerp(0.5, 0.15, nah), Math.cos(winkel) * abstand);
-    camera.lookAt(0, lerp(0.1, -0.05, nah), 0);
+    camera.position.set(Math.sin(winkel) * abstand, lerp(0.6, 0.35, nah), Math.cos(winkel) * abstand);
+    /*
+      Blickpunkt bewusst über der Flaschenmitte: vorher wanderte der Sprühkopf
+      beim Heranfahren aus dem oberen Bildrand — ausgerechnet das Teil, das die
+      Flasche als Sprühflasche erkennbar macht.
+    */
+    camera.lookAt(0, lerp(0.2, 0.3, nah), 0);
   });
 
   return (
@@ -129,6 +139,10 @@ function Studio({ progressRef, lowPower }: SceneProps) {
       {/* Aufhellung von vorn unten, damit das Etikett lesbar wird */}
       <pointLight ref={fillLight} position={[1.1, -1.4, 3.4]} intensity={0} color="#bcd6f0" distance={12} />
 
+      {/* Kleines hartes Licht nur für den Sprühkopf: dunkler Kunststoff
+          braucht eine scharfe Reflexion, sonst liest man seine Form nicht. */}
+      <pointLight position={[1.5, 2.6, 2.2]} intensity={9} color="#ffffff" distance={7} />
+
       {/*
         Flasche und Sprühkegel sitzen in derselben Gruppe: der Strahl muss der
         Ausrichtung der Düse folgen, sonst steht er beim Kippen frei im Raum.
@@ -138,7 +152,7 @@ function Studio({ progressRef, lowPower }: SceneProps) {
         <Bottle ref={bottle} lowPower={lowPower} />
         {/* An der Düsenspitze. Leicht nach unten geneigt — eine positive
             Drehung um X würde +Z nach OBEN kippen, nicht nach vorn-unten. */}
-        <group position={[0, 1.08, 0.36]} rotation={[-0.14, 0, 0]}>
+        <group position={[0, 1.08, 0.6]} rotation={[-0.14, 0, 0]}>
           <Spray progressRef={spray} count={lowPower ? 700 : 2400} />
         </group>
       </group>

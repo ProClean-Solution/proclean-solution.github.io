@@ -100,18 +100,24 @@ function useLabelTexture() {
   }, [fontsBereit]);
 }
 
-/** Flaschensilhouette als Profil für die Lathe-Geometrie. */
+/**
+ * Flaschensilhouette als Profil für die Lathe-Geometrie.
+ *
+ * Gerader Korpus mit hoch angesetzter, knapper Schulter und kurzem Hals —
+ * die Form einer Sprühflasche. Die erste Fassung hatte die weiche Rundung
+ * einer Apothekerflasche und liess den Kopf wie einen Deckel wirken.
+ */
 function bottleProfile(): THREE.Vector2[] {
   const p: THREE.Vector2[] = [];
   p.push(new THREE.Vector2(0.0, -1.05));
-  p.push(new THREE.Vector2(0.42, -1.05)); // Bodenkante
-  p.push(new THREE.Vector2(0.46, -0.98));
-  p.push(new THREE.Vector2(0.46, 0.05)); // gerader Korpus
-  p.push(new THREE.Vector2(0.45, 0.2));
-  p.push(new THREE.Vector2(0.36, 0.42)); // Schulter
-  p.push(new THREE.Vector2(0.22, 0.58));
-  p.push(new THREE.Vector2(0.19, 0.68)); // Hals
-  p.push(new THREE.Vector2(0.19, 0.78));
+  p.push(new THREE.Vector2(0.44, -1.05)); // Bodenkante
+  p.push(new THREE.Vector2(0.475, -0.99));
+  p.push(new THREE.Vector2(0.475, 0.3)); // gerader Korpus, weit hinauf
+  p.push(new THREE.Vector2(0.47, 0.42));
+  p.push(new THREE.Vector2(0.4, 0.56)); // knappe Schulter
+  p.push(new THREE.Vector2(0.27, 0.68));
+  p.push(new THREE.Vector2(0.2, 0.74)); // kurzer Hals
+  p.push(new THREE.Vector2(0.2, 0.84));
   return p;
 }
 
@@ -131,7 +137,7 @@ export const Bottle = forwardRef<THREE.Group, BottleProps>(function Bottle(
     [lowPower],
   );
   const liquidGeo = useMemo(
-    () => new THREE.CylinderGeometry(0.43, 0.4, 1.35, lowPower ? 24 : 48),
+    () => new THREE.CylinderGeometry(0.445, 0.42, 1.45, lowPower ? 24 : 48),
     [lowPower],
   );
 
@@ -150,7 +156,7 @@ export const Bottle = forwardRef<THREE.Group, BottleProps>(function Bottle(
           bleiben — die Timeline greift nur auf diese Gruppe zu. */}
 
       {/* Flüssigkeit zuerst: liegt innen und muss vor dem Glas gezeichnet werden */}
-      <mesh geometry={liquidGeo} position={[0, -0.36, 0]} name="liquid">
+      <mesh geometry={liquidGeo} position={[0, -0.31, 0]} name="liquid">
         <meshStandardMaterial
           color="#2b6ea8"
           transparent
@@ -195,8 +201,8 @@ export const Bottle = forwardRef<THREE.Group, BottleProps>(function Bottle(
         auf der +Z-Achse, der mittig gezeichnete Text bei u=0.5 zeigt also
         ohne Drehung genau von der Kamera weg.
       */}
-      <mesh position={[0, -0.28, 0]} rotation={[0, Math.PI, 0]} name="label">
-        <cylinderGeometry args={[0.468, 0.468, 0.62, lowPower ? 32 : 64, 1, true]} />
+      <mesh position={[0, -0.22, 0]} rotation={[0, Math.PI, 0]} name="label">
+        <cylinderGeometry args={[0.483, 0.483, 0.66, lowPower ? 32 : 64, 1, true]} />
         {/*
           Das Etikett leuchtet leicht selbst. Im dunklen Studio blieb ein rein
           beleuchtetes dunkelblaues Etikett ein schwarzes Rechteck — genau das
@@ -214,31 +220,74 @@ export const Bottle = forwardRef<THREE.Group, BottleProps>(function Bottle(
         />
       </mesh>
 
-      {/* Kragen */}
-      <mesh position={[0, 0.83, 0]} name="collar">
-        <cylinderGeometry args={[0.22, 0.21, 0.12, lowPower ? 20 : 40]} />
+      {/* Kragen: die Überwurfmutter auf dem Flaschenhals */}
+      <mesh position={[0, 0.82, 0]} name="collar">
+        <cylinderGeometry args={[0.235, 0.225, 0.13, lowPower ? 20 : 40]} />
         <meshStandardMaterial color="#15181c" roughness={0.45} metalness={0.35} />
       </mesh>
 
-      {/* Sprühkopf */}
-      <group position={[0, 1.02, 0]} name="head">
-        <mesh position={[0, 0.06, 0.02]}>
-          <boxGeometry args={[0.3, 0.24, 0.5]} />
-          <meshStandardMaterial color="#111418" roughness={0.38} metalness={0.4} />
+      {/*
+        Sprühkopf mit Pistolengriff.
+
+        Die erste Fassung war ein kleines Kästchen auf dem Hals — das liest sich
+        als Pumpspender, nicht als Sprühflasche. Was eine Sprühflasche ausmacht:
+        ein nach VORN gezogenes Gehäuse, die Düse vorn an dessen Spitze, und ein
+        Abzugshebel darunter, den die Hand von hinten umgreift.
+      */}
+      {/* Etwas grösser als 1:1 und aus hellerem, glänzenderem Kunststoff:
+          reines Schwarz verschwand im dunklen Studio vollständig, damit war
+          die Sprühmechanik unsichtbar — und genau die macht die Flasche aus. */}
+      <group position={[0, 0.88, 0]} scale={1.18} name="head">
+        {/* Gehäuse, waagerecht nach vorn */}
+        <mesh position={[0, 0.2, 0.13]} name="shroud">
+          <boxGeometry args={[0.27, 0.23, 0.58]} />
+          <meshStandardMaterial color="#252b33" roughness={0.28} metalness={0.55} />
         </mesh>
-        {/* Düse, zeigt nach +Z — der Spray läuft in dieselbe Richtung */}
-        <mesh position={[0, 0.06, 0.3]} rotation={[Math.PI / 2, 0, 0]} name="nozzle">
-          <cylinderGeometry args={[0.05, 0.07, 0.16, 20]} />
-          <meshStandardMaterial color="#0c0e11" roughness={0.3} metalness={0.6} />
+        {/* Gerundete Oberseite: ein Zylinder längs des Gehäuses nimmt dem
+            Kasten die Kante, ohne dass eine eigene Geometrie nötig wird. */}
+        <mesh position={[0, 0.29, 0.13]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.132, 0.132, 0.58, lowPower ? 16 : 28]} />
+          <meshStandardMaterial color="#2b323b" roughness={0.24} metalness={0.6} />
         </mesh>
-        {/* Abzug — wird in der Timeline bewegt */}
-        <mesh position={[0, -0.1, 0.14]} rotation={[0.35, 0, 0]} name="trigger">
-          <boxGeometry args={[0.14, 0.26, 0.07]} />
-          <meshStandardMaterial color="#171b20" roughness={0.4} metalness={0.35} />
+
+        {/* Verstellbarer Düsenring */}
+        <mesh position={[0, 0.2, 0.45]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.09, 0.095, 0.1, lowPower ? 16 : 28]} />
+          <meshStandardMaterial color="#1d232a" roughness={0.3} metalness={0.6} />
         </mesh>
+        {/* Düse an der Spitze, zeigt nach +Z — der Spray läuft in dieselbe Richtung */}
+        <mesh position={[0, 0.2, 0.53]} rotation={[Math.PI / 2, 0, 0]} name="nozzle">
+          <cylinderGeometry args={[0.036, 0.055, 0.08, lowPower ? 12 : 20]} />
+          <meshStandardMaterial color="#161b21" roughness={0.2} metalness={0.75} />
+        </mesh>
+
+        {/* Griffsäule hinter dem Abzug — hier liegt die Handfläche an */}
+        <mesh position={[0, -0.02, -0.06]} name="grip">
+          <boxGeometry args={[0.25, 0.34, 0.24]} />
+          <meshStandardMaterial color="#20262e" roughness={0.42} metalness={0.4} />
+        </mesh>
+
+        {/*
+          Abzugshebel. Der Drehpunkt sitzt OBEN, deshalb die eigene Gruppe:
+          eine Rotation des Meshs allein würde um seine Mitte kippen, und der
+          Hebel würde beim Drücken nach unten wegwandern statt sich anzulegen.
+          Die Timeline dreht `trigger`.
+        */}
+        <group position={[0, 0.07, 0.27]} rotation={[0.3, 0, 0]} name="trigger">
+          <mesh position={[0, -0.16, -0.01]}>
+            <boxGeometry args={[0.115, 0.32, 0.05]} />
+            <meshStandardMaterial color="#2a313a" roughness={0.34} metalness={0.45} />
+          </mesh>
+          {/* Verdickte Auflage für den Zeigefinger */}
+          <mesh position={[0, -0.31, 0.01]} rotation={[-0.3, 0, 0]}>
+            <boxGeometry args={[0.12, 0.09, 0.07]} />
+            <meshStandardMaterial color="#323a44" roughness={0.44} metalness={0.35} />
+          </mesh>
+        </group>
+
         {/* Steigrohr, sichtbar durch das Glas */}
-        <mesh position={[0, -0.75, 0]}>
-          <cylinderGeometry args={[0.028, 0.028, 1.6, 10]} />
+        <mesh position={[0, -0.72, 0]}>
+          <cylinderGeometry args={[0.026, 0.026, 1.62, 10]} />
           <meshStandardMaterial color="#20262c" roughness={0.5} />
         </mesh>
       </group>
