@@ -68,7 +68,12 @@ jobs:
           # Über einen eigenen Index statt über einen Branchwechsel: so wird
           # weder das Arbeitsverzeichnis noch der Index des Projekts angefasst.
           # `-f`, weil out/ in .gitignore steht.
-          IDX="$(mktemp)"
+          #
+          # Der Pfad darf NICHT existieren: `mktemp` legt eine leere Datei an,
+          # und git lehnt eine leere Datei als Index ab
+          # ("index file smaller than expected"). Er muss ihn selbst anlegen.
+          IDX="${RUNNER_TEMP}/gh-pages-index"
+          rm -f "$IDX"
           GIT_INDEX_FILE="$IDX" git --work-tree=out add -A -f .
           TREE="$(GIT_INDEX_FILE="$IDX" git write-tree)"
           COMMIT="$(git commit-tree "$TREE" -m "Statische Vorschau, gebaut aus ${GITHUB_SHA:0:7}")"
