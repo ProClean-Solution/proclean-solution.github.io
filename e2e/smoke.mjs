@@ -519,6 +519,106 @@ check(
   (await page.locator('a[href^="tel:+41762500599"]').count()) > 0,
 );
 
+// ---------- Navigation ----------
+const navZustand = () =>
+  page.evaluate(() => {
+    const n = document.querySelector(".site-nav");
+    if (!n) return null;
+    const cs = getComputedStyle(n);
+    return { sichtbar: n.hasAttribute("data-sichtbar"), vis: cs.visibility };
+  });
+
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.waitForTimeout(500);
+check("Über dem ersten Bild steht keine Leiste", (await navZustand())?.sichtbar === false);
+
+// Mitten im Film hat sie erst recht nichts zu suchen.
+await page.evaluate((y) => window.scrollTo(0, y), 900 * 2);
+await page.waitForTimeout(500);
+check("Und während des Films auch nicht", (await navZustand())?.sichtbar === false);
+
+/*
+  Versteckt heisst auch: aus der Tabreihenfolge. Eine unsichtbare, aber
+  fokussierbare Leiste faengt beim Tabben den Fokus ein und schickt ihn ins
+  Nichts — deshalb wird `visibility` mitgeschaltet, nicht nur die Transform.
+*/
+check(
+  "Die versteckte Leiste faengt keinen Tastaturfokus",
+  (await navZustand())?.vis === "hidden",
+);
+
+// Weit unten und dann ein Stueck zurueck: wer nach oben scrollt, sucht etwas.
+await page.evaluate((y) => window.scrollTo(0, y), 900 * 7);
+await page.waitForTimeout(500);
+check("Beim Weiterscrollen bleibt sie weg", (await navZustand())?.sichtbar === false);
+await page.evaluate(() => window.scrollBy(0, -400));
+await page.waitForTimeout(500);
+check("Beim Zurückscrollen kommt sie", (await navZustand())?.sichtbar === true);
+
+// Die Sprungmarken muessen auch wirklich irgendwo hinfuehren.
+const navZiele = await page.evaluate(() =>
+  [...document.querySelectorAll(".site-nav a[href^='#']")].map((a) => {
+    const id = a.getAttribute("href").slice(1);
+    return { id, existiert: !!document.getElementById(id) };
+  }),
+);
+// Auf Desktopbreite darf keine Sprungmarke doppelt vorkommen: "Rechner" im
+// Menue und ein "Preis"-Knopf danebem fuehrten beide an dieselbe Stelle.
+const sichtbareZiele = await page.evaluate(() =>
+  [...document.querySelectorAll(".site-nav a[href^='#']")]
+    .filter((a) => a.offsetParent !== null)
+    .map((a) => a.getAttribute("href")),
+);
+check(
+  "Keine Sprungmarke steht doppelt in der Leiste",
+  new Set(sichtbareZiele).size === sichtbareZiele.length,
+  sichtbareZiele.join(" "),
+);
+check(
+  "Jede Sprungmarke führt zu einem Abschnitt",
+  navZiele.length > 0 && navZiele.every((z) => z.existiert),
+  JSON.stringify(navZiele),
+);
+
+/*
+  Gepinnte Sequenzen gehoeren sich selbst. Auf dem Handy deckte die Leiste
+  sonst den Namen der ausgewachsenen Paketkarte zu — sie ist dort fast
+  bildschirmhoch, es gibt keinen Platz fuer beides.
+*/
+const inSequenz = await page.evaluate(async () => {
+  const t = document.querySelector("[data-offer-track]").getBoundingClientRect();
+  window.scrollTo(0, Math.round(t.top + scrollY + t.height - innerHeight));
+  await new Promise((r) => setTimeout(r, 600));
+  window.scrollBy(0, -120);
+  await new Promise((r) => setTimeout(r, 800));
+  const nav = document.querySelector(".site-nav");
+  const karte = document.querySelector(".offer-card").getBoundingClientRect();
+  return {
+    sichtbar: nav.hasAttribute("data-sichtbar"),
+    navUnten: Math.round(nav.querySelector(".glass").getBoundingClientRect().bottom),
+    karteOben: Math.round(karte.top),
+  };
+});
+check(
+  "In einer gepinnten Sequenz hält sich die Leiste heraus",
+  !inSequenz.sichtbar || inSequenz.navUnten <= inSequenz.karteOben,
+  JSON.stringify(inSequenz),
+);
+
+await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+await page.waitForTimeout(400);
+await page.evaluate(() => window.scrollBy(0, -400));
+await page.waitForTimeout(700);
+await page.locator(".site-nav").getByRole("link", { name: "Rechner" }).click();
+await page.waitForTimeout(900);
+check(
+  "Ein Klick auf Rechner führt zum Rechner",
+  await page.locator("#rechner h2").isVisible(),
+);
+
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.waitForTimeout(400);
+
 // ---------- Abspann ----------
 await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
 await page.waitForTimeout(1400);

@@ -152,7 +152,7 @@ export function OfficeOffer() {
   const essential = PACKAGES[0];
 
   return (
-    <section ref={root} id="angebot" className="stage scroll-mt-8 px-5 py-24 sm:py-32">
+    <section ref={root} id="angebot" className="stage scroll-mt-24 px-5 py-24 sm:py-32">
       <div className="mx-auto max-w-5xl">
         <p className="text-xs font-semibold tracking-[0.3em] text-[var(--stage-dim)] uppercase">
           ProClean Office
@@ -240,7 +240,14 @@ export function OfficeOffer() {
         Karte bleibt darin stehen; ohne Animation ist die Bahn eine gewöhnliche
         Box und die Karte zeigt alles auf einmal.
       */}
-      <div ref={bahn} data-offer-track="" className={cn("mx-auto mt-16 max-w-5xl", aktiv && "h-[260vh]")}>
+      {/* `data-nav-frei`: solange die Karte gepinnt läuft, gehört der Bildschirm
+          ihr. Auf dem Handy deckte die Navigationsleiste sonst den Paketnamen zu. */}
+      <div
+        ref={bahn}
+        data-offer-track=""
+        data-nav-frei=""
+        className={cn("mx-auto mt-16 max-w-5xl", aktiv && "h-[260vh]")}
+      >
         <div className={cn(aktiv && "sticky top-0 flex h-svh items-center")}>
           <div
             ref={karte}

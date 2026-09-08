@@ -607,3 +607,34 @@ body {
   Paket aktiv, und drei halb blasse Karten wären dann ein Fehler statt einer
   Markierung. Die aktive Karte tritt hervor, die anderen bleiben normal.
 */
+
+/* ---------------------------------------------------------------------------
+   Die Navigation (site-nav.tsx)
+
+   `visibility` schaltet mit, nicht nur die Transform: eine Leiste, die
+   ausserhalb des Bildes steht, aber weiterhin fokussierbar ist, fängt beim
+   Tabben den Fokus ein und schickt ihn ins Nichts. Die Verzögerung sorgt
+   dafür, dass sie erst nach dem Wegfahren verschwindet.
+--------------------------------------------------------------------------- */
+
+.site-nav {
+  transform: translateY(-140%);
+  visibility: hidden;
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0.55s;
+}
+
+.site-nav[data-sichtbar] {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-nav {
+    transition: none;
+  }
+}

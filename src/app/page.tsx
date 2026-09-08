@@ -6,6 +6,7 @@ import { Hero } from "@/components/ui/hero";
 import { IntroShell } from "@/components/intro/intro-shell";
 import { OfficeOffer } from "@/components/ui/office-offer";
 import { PriceCalculator } from "@/components/ui/price-calculator";
+import { SiteNav } from "@/components/ui/site-nav";
 import { SmoothScroll } from "@/components/ui/smooth-scroll";
 
 /*
@@ -19,6 +20,7 @@ export default function Home() {
   return (
     <>
       <SmoothScroll />
+      <SiteNav />
       <main id="inhalt">
         {/*
           Der bestehende Hero, unverändert. IntroShell legt den Film davor und
@@ -34,7 +36,7 @@ export default function Home() {
             Preis, dann die wachsende Paketkarte, dann Fläche und Optionen. */}
         <OfficeOffer />
 
-        <section id="rechner" className="scroll-mt-8 px-5 py-24 sm:py-32">
+        <section id="rechner" className="scroll-mt-24 px-5 py-24 sm:py-32">
           <div className="mx-auto max-w-6xl">
             <p className="text-xs font-semibold tracking-[0.3em] text-muted-foreground uppercase">
               Rechner
@@ -56,7 +58,7 @@ export default function Home() {
           dadurch dunkel in den Abspann hinein, statt am hellen Rechner
           abzubrechen und unten hart umzuschalten.
         */}
-        <section className="stage px-5 py-24 sm:py-32">
+        <section id="fragen" className="stage scroll-mt-24 px-5 py-24 sm:py-32">
           <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.85fr_1fr] lg:items-start lg:gap-16">
             <div className="lg:sticky lg:top-24">
               <p className="text-xs font-semibold tracking-[0.3em] text-[var(--stage-dim)] uppercase">

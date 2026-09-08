@@ -151,7 +151,17 @@ export function IntroShell({ children }: { children: React.ReactNode }) {
     komplette Seite abstürzen liess.
   */
   return (
-    <div ref={section} style={aktiv ? { height: `${SCROLL_LENGTH_VH}vh` } : undefined}>
+    /*
+      `data-intro-track` ist der Messpunkt für die Navigation: unterhalb
+      dieses Abschnitts darf sie erscheinen. Mit Film ist das die ganze
+      Filmstrecke, ohne Film die Höhe des Heros — dieselbe Messung, weil
+      die Hülle immer im Baum steht.
+    */
+    <div
+      ref={section}
+      data-intro-track=""
+      style={aktiv ? { height: `${SCROLL_LENGTH_VH}vh` } : undefined}
+    >
       {/* Eigener dunkler Grund: der Hero ist 92svh hoch, der Container 100svh.
           Ohne ihn blitzte unten ein heller Streifen der Seitenfarbe durch. */}
       <div
