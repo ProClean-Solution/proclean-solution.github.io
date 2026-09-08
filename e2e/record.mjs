@@ -1,5 +1,7 @@
 import { chromium } from "playwright-core";
 import { existsSync, mkdirSync, readdirSync, renameSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import ffmpeg from "ffmpeg-static";
 
 /**
  * Nimmt einen Durchlauf der Seite als Video auf.
@@ -57,11 +59,35 @@ async function scrolleBis(ziel, schritte, pause) {
 await scrolleBis(introEnde, 150, 55);
 await page.waitForTimeout(900);
 
-// Weiter durch die bestehende Seite
+// Der Wisch und der Kopf des Angebots
+await scrolleBis(introEnde + vh * 2.2, 60, 45);
+await page.waitForTimeout(500);
+
+/*
+  Die Paketkarte langsamer: sie wächst über ihre ganze Bahn von Essential
+  über Plus zu Complete, und in normalem Scrolltempo sieht man die mittlere
+  Stufe kaum. Die Bahn wird gemessen statt geschätzt — ihre Höhe steht in
+  Bildschirmhöhen im Markup und darf sich ändern, ohne dass die Aufnahme
+  daneben liegt.
+*/
+const bahn = await page.evaluate(() => {
+  const el = document.querySelector("[data-offer-track]");
+  if (!el) return null;
+  const box = el.getBoundingClientRect();
+  return { oben: box.top + window.scrollY, hoehe: box.height };
+});
+if (bahn) {
+  await scrolleBis(bahn.oben, 40, 40);
+  await page.waitForTimeout(700);
+  await scrolleBis(bahn.oben + bahn.hoehe - vh, 130, 55);
+  await page.waitForTimeout(900);
+}
+
+// Weiter durch den Rest der Seite
 const gesamt = await page.evaluate(
   () => document.documentElement.scrollHeight - window.innerHeight,
 );
-await scrolleBis(Math.min(gesamt, introEnde + vh * 6), 110, 45);
+await scrolleBis(gesamt, 90, 45);
 await page.waitForTimeout(800);
 
 await page.close();
@@ -70,7 +96,28 @@ await browser.close();
 
 // Playwright vergibt Zufallsnamen — auf etwas Lesbares umbenennen.
 const datei = readdirSync(out).find((f) => f.endsWith(".webm") && !f.startsWith("proclean"));
-if (datei) {
-  renameSync(`${out}/${datei}`, `${out}/${name}.webm`);
-  console.log(`${out}/${name}.webm`);
+if (!datei) {
+  console.error("Keine Aufnahme gefunden.");
+  process.exit(1);
 }
+renameSync(`${out}/${datei}`, `${out}/${name}.webm`);
+console.log(`${out}/${name}.webm`);
+
+/*
+  Zusätzlich als H.264-MP4.
+  Playwright schreibt VP8 in einem WebM-Container — das spielt auf vielen
+  Geräten nicht ab, auf dem iPhone praktisch nie. Baseline-Profil und
+  yuv420p, damit auch ältere Player mitkommen; faststart, damit das Video
+  losläuft, bevor die Datei ganz geladen ist.
+*/
+execFileSync(
+  ffmpeg,
+  [
+    "-y", "-i", `${out}/${name}.webm`,
+    "-c:v", "libx264", "-profile:v", "baseline", "-level", "3.1",
+    "-pix_fmt", "yuv420p", "-crf", "24", "-movflags", "+faststart",
+    `${out}/${name}.mp4`,
+  ],
+  { stdio: "ignore" },
+);
+console.log(`${out}/${name}.mp4`);
