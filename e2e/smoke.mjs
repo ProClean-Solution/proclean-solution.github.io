@@ -428,6 +428,31 @@ check(
   "Der Wisch nennt dieselben Leistungen wie der Katalog",
   (await page.locator(".sweep-after").innerText()).includes("Sanitär"),
 );
+
+/*
+  Beide Seiten des Wischs muessen DIESELBE Flaeche zeigen. Die saubere Seite
+  war einmal ein leerer Verlauf — damit war der Wisch eine Farbaenderung und
+  kein Ergebnis. Geprueft wird, dass beide Ebenen dasselbe Fugenraster tragen.
+*/
+const wischFlaechen = await page.evaluate(() => {
+  const lies = (sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return {
+      fugen: (cs.backgroundImage.match(/repeating-linear-gradient/g) ?? []).length,
+      raster: cs.getPropertyValue("--fuge").trim(),
+    };
+  };
+  return { stumpf: lies(".sweep-surface--dull"), sauber: lies(".sweep-surface--clean") };
+});
+check(
+  "Beide Seiten des Wischs zeigen dieselbe Fläche",
+  wischFlaechen.stumpf?.fugen === 2 &&
+    wischFlaechen.sauber?.fugen === 2 &&
+    wischFlaechen.stumpf.raster === wischFlaechen.sauber.raster,
+  JSON.stringify(wischFlaechen),
+);
 check(
   "Fensterpreis wird nach Glasfläche genannt",
   (await frage("was kostet fensterreinigung")).includes("4.50"),

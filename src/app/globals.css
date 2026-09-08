@@ -531,3 +531,57 @@ body {
     }
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Der Wisch (clean-sweep.tsx)
+
+   Eine Fläche, zwei Zustände. Das Fugenraster ist auf beiden Ebenen identisch
+   — nur Farbe, Kontrast und Glanz unterscheiden sie. Dadurch liest der Wisch
+   als Ergebnis und nicht als Farbwechsel.
+--------------------------------------------------------------------------- */
+
+.sweep-surface {
+  --fuge: 74px;
+  background-repeat: repeat, repeat, no-repeat;
+  background-size:
+    var(--fuge) var(--fuge),
+    var(--fuge) var(--fuge),
+    100% 100%;
+}
+
+.sweep-surface--dull {
+  /* Muddige Fugen: der Schmutz sitzt genau dort, wo er im echten Büro sitzt. */
+  background-image:
+    repeating-linear-gradient(to right, rgb(20 17 14 / 0.55) 0 2px, transparent 2px var(--fuge)),
+    repeating-linear-gradient(to bottom, rgb(20 17 14 / 0.55) 0 2px, transparent 2px var(--fuge)),
+    linear-gradient(135deg, #2a2724 0%, #35302b 40%, #29251f 100%);
+}
+
+.sweep-surface--clean {
+  /* Klare, schmale Fugen und ein heller Grund. */
+  background-image:
+    repeating-linear-gradient(to right, rgb(120 112 102 / 0.28) 0 1px, transparent 1px var(--fuge)),
+    repeating-linear-gradient(to bottom, rgb(120 112 102 / 0.28) 0 1px, transparent 1px var(--fuge)),
+    linear-gradient(135deg, #f2efec 0%, #ffffff 45%, #e9e5e0 100%);
+}
+
+.sweep-grime {
+  opacity: 0.7;
+  background-image:
+    radial-gradient(ellipse 18% 40% at 22% 34%, rgb(140 128 108 / 0.55), transparent 70%),
+    radial-gradient(ellipse 22% 35% at 63% 66%, rgb(126 114 98 / 0.5), transparent 70%),
+    radial-gradient(ellipse 14% 30% at 84% 28%, rgb(150 138 118 / 0.4), transparent 70%),
+    repeating-linear-gradient(102deg, rgb(160 148 128 / 0.09) 0 2px, transparent 2px 22px);
+}
+
+/*
+  Glanz und Spiegelung nur auf der sauberen Seite. Der schmale Streifen oben
+  liest als Licht, das sich im frisch gewischten Boden bricht — das ist der
+  Unterschied, den man auf einem Foto sofort sieht und den ein Farbfeld nicht
+  transportiert.
+*/
+.sweep-gloss {
+  background-image:
+    linear-gradient(to bottom, rgb(255 255 255 / 0.85), transparent 26%),
+    linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.9) 47%, transparent 64%);
+}

@@ -82,38 +82,25 @@ export function CleanSweep() {
           Der Preis steht vor dem ersten Termin fest. Die Zimmerzahl ändert nichts daran.
         </p>
 
+        {/*
+          Beide Seiten zeigen DIESELBE Fläche, nur in zwei Zuständen.
+
+          Vorher war die saubere Seite ein leerer heller Verlauf: die Kante
+          fuhr durch und liess ein Farbfeld zurück. Damit war der Wisch eine
+          Farbänderung, kein Ergebnis. Jetzt liegt auf beiden Ebenen dasselbe
+          Fugenraster — man sieht denselben Boden, einmal stumpf mit
+          Schlieren, einmal mit klaren Fugen und Glanz.
+        */}
         <div className="relative mt-10 h-[38svh] max-h-[26rem] min-h-[11rem] w-full overflow-hidden rounded-2xl">
           {/* Unten: die stumpfe Fläche */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "linear-gradient(135deg, #2a2724 0%, #35302b 40%, #29251f 100%)",
-            }}
-          >
+          <div className="sweep-surface sweep-surface--dull absolute inset-0">
             {/* Schlieren und Flecken, damit es nach Fläche aussieht, nicht nach Farbfeld */}
-            <div
-              className="absolute inset-0 opacity-70"
-              style={{
-                backgroundImage:
-                  "radial-gradient(ellipse 18% 40% at 22% 34%, rgba(140,128,108,.55), transparent 70%), radial-gradient(ellipse 22% 35% at 63% 66%, rgba(126,114,98,.5), transparent 70%), radial-gradient(ellipse 14% 30% at 84% 28%, rgba(150,138,118,.4), transparent 70%), repeating-linear-gradient(102deg, rgba(160,148,128,.09) 0 2px, transparent 2px 22px)",
-              }}
-            />
+            <div className="sweep-grime absolute inset-0" />
           </div>
 
           {/* Oben: dieselbe Fläche, sauber. Wird per clip-path aufgezogen. */}
-          <div
-            className="sweep-clean absolute inset-0"
-            style={{
-              background: "linear-gradient(135deg, #f2efec 0%, #ffffff 45%, #e9e5e0 100%)",
-            }}
-          >
-            <div
-              className="absolute inset-0 opacity-70"
-              style={{
-                backgroundImage:
-                  "linear-gradient(115deg, transparent 28%, rgba(255,255,255,.95) 46%, transparent 64%)",
-              }}
-            />
+          <div className="sweep-clean sweep-surface sweep-surface--clean absolute inset-0">
+            <div className="sweep-gloss absolute inset-0" />
           </div>
 
           {/* Die Kante, die den Wisch führt */}
