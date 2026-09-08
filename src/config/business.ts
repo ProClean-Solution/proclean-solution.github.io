@@ -27,6 +27,17 @@ export const business = {
   vatRegistered: false,
   /** Schweizer Normalsatz seit 1.1.2024. */
   vatRate: 0.081,
+  /**
+   * Wird an jedem Preis ausgewiesen. Florijan will das explizit sichtbar haben.
+   *
+   * ACHTUNG bei der Formulierung: "exkl. MwSt." heisst, dass noch Steuer
+   * dazukommt. Solange `vatRegistered` false ist, stimmt das nicht — dann ist
+   * der Preis endgültig. Die beiden Texte unten decken beide Fälle sauber ab.
+   */
+  priceNote: {
+    notRegistered: "Preise ohne MwSt. — wir sind nicht mehrwertsteuerpflichtig, es kommt nichts dazu.",
+    registered: "Preise exkl. MwSt. (8,1 %)",
+  },
 
   /**
    * Explizit als string typisiert, nicht über `as const` verengt: sonst
@@ -35,7 +46,11 @@ export const business = {
    */
   contact: {
     phone: "+41 76 250 05 99",
-    email: "", // TODO
+    /**
+     * Später auf florijan.djeljilji@procleansolution.ch umstellen.
+     * Sobald die Domain steht: hier ändern, sonst nirgends.
+     */
+    email: "florijan.d@outlook.com",
     whatsapp: "", // dieselbe Nummer? Dann hier "41762500599" eintragen
   } as { phone: string; email: string; whatsapp: string },
 

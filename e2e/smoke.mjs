@@ -138,6 +138,15 @@ await page.setViewportSize({ width: 390, height: 844 });
 await page.goto(BASE, { waitUntil: "networkidle" });
 const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
 check("Kein horizontales Scrollen auf dem Handy", scrollW <= 390, `scrollWidth=${scrollW}`);
+
+// overflow-hidden verbirgt abgeschnittenen Text vor der Scrollbreiten-Pruefung,
+// deshalb jede Ueberschrift einzeln messen.
+const beschnitten = await page.evaluate(() =>
+  [...document.querySelectorAll("h1, h2, h3")]
+    .filter((el) => el.scrollWidth > el.clientWidth + 1)
+    .map((el) => `${el.tagName}: ${el.textContent?.trim().slice(0, 40)}`),
+);
+check("Keine Ueberschrift wird abgeschnitten", beschnitten.length === 0, beschnitten.join(" | "));
 await page.screenshot({ path: `${out}/mobil.png` });
 
 // ---------- Reduzierte Bewegung ----------

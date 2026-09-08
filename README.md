@@ -18,6 +18,7 @@ npm run dev          # Entwicklungsserver
 npm test             # Unit-Tests (Preis- und Antwort-Engine)
 npm run build        # Produktionsbuild
 npm run test:e2e     # Browser-Smoke-Test gegen einen laufenden Server
+node e2e/shots.mjs   # Screenshots über den ganzen Scrollverlauf
 ```
 
 Für `test:e2e` muss die Seite laufen (`npm run build && npm start -- -p 3100`).
@@ -50,6 +51,31 @@ statt zu raten; bei themenfremden Fragen leitet sie an einen Menschen weiter.
 Diese Garantie ist in `engine.test.ts` festgeschrieben.
 
 Neue Fragen werden einfach in `knowledge.ts` ergänzt — der Index baut sich selbst.
+
+## Design
+
+Abfolge dunkler "Bühnen" und heller Arbeitsflächen. Die Bühne (`.stage` in
+`globals.css`) ist in beiden Themes dunkel — wie eine Apple-Produktseite eine
+gestaltete Fläche, kein Theme-Fehler. Sie bringt ihren eigenen, helleren
+Goldton mit, weil der Theme-Akzent auf Schwarz nur knapp über die
+Kontrastschwelle kommt.
+
+**Der Wisch** (`clean-sweep.tsx`) ist die einzige gepinnte Sektion: beim
+Scrollen fährt eine Kante über eine Fläche und lässt sie sauber zurück, die
+Beschriftung wechselt dabei von "Vorher" auf "Nachher". Zwei CSS-Verläufe
+übereinander, die obere per `clip-path` aufgezogen — kein Bild, keine
+Ladezeit, in jeder Auflösung scharf.
+
+Regeln, an die sich alle Animationen halten:
+
+- **Ruhezustand zuerst.** Ohne JavaScript und bei reduzierter Bewegung zeigt
+  jede Sektion ihren Endzustand. Nichts wird auf `opacity: 0` geparkt.
+- `gsap.matchMedia("(prefers-reduced-motion: no-preference)")` umschliesst
+  jede Bewegung.
+- Parallax nur auf dekorativen Flächen, nie auf Fliesstext.
+- Höchstens eine gepinnte Sektion, `scrub` zwischen 0,5 und 1,5.
+- Lenis läuft nur, wenn Bewegung erlaubt ist, und teilt seinen Takt mit
+  ScrollTrigger.
 
 ## Preismodell
 

@@ -113,9 +113,11 @@ export function calculateQuote(input: QuoteInput): Quote {
       `Mit dem Abo über 12 Monate zahlen Sie ${formatMoney(ersparnis)} weniger pro Termin.`,
     );
   }
-  if (!business.vatRegistered) {
-    notices.push("Endpreis, keine Mehrwertsteuer.");
-  }
+  notices.push(
+    business.vatRegistered
+      ? business.priceNote.registered
+      : business.priceNote.notRegistered,
+  );
 
   return {
     input: { ...input, squareMeters: sqm, extras: [...new Set(input.extras)].sort() },

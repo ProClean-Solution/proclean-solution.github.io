@@ -125,6 +125,87 @@ body {
   }
 }
 
+/*
+  Die Bühne: bewusst in beiden Themes dunkel. Wie bei Apple-Produktseiten ist
+  das kein Theme-Fehler, sondern eine gestaltete Fläche — der Rest der Seite
+  folgt weiter dem Theme des Betrachters.
+*/
+.stage {
+  --stage-bg: #0a0908;
+  --stage-fg: #fafaf9;
+  --stage-dim: #a29a92;
+  --stage-line: color-mix(in oklch, #fafaf9 12%, transparent);
+  /*
+    Eigener Akzent statt des Theme-Akzents: die Bühne ist immer dunkel, also
+    braucht sie den helleren Goldton. Der Theme-Wert #A16207 kommt mit
+    schwarzer Schrift nur knapp über die Kontrastschwelle.
+  */
+  --accent: #d9a93a;
+  background: var(--stage-bg);
+  color: var(--stage-fg);
+}
+
+/* Liquid Glass. Blur nur hier, nicht flächendeckend — es kostet GPU. */
+.glass {
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklch, var(--stage-fg) 7%, transparent),
+    color-mix(in oklch, var(--stage-fg) 2%, transparent)
+  );
+  border: 1px solid color-mix(in oklch, var(--stage-fg) 10%, transparent);
+  box-shadow:
+    0 24px 60px -24px rgb(0 0 0 / 0.6),
+    inset 0 1px 0 color-mix(in oklch, var(--stage-fg) 14%, transparent);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+.glass-hover {
+  transition:
+    border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-hover:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklch, var(--accent) 45%, transparent);
+}
+
+/* Weiches Umgebungslicht hinter der Bühne. Rein dekorativ, nie über Text. */
+.aura {
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in oklch, var(--accent) 22%, transparent) 0%,
+    color-mix(in oklch, var(--accent) 6%, transparent) 45%,
+    transparent 70%
+  );
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+/*
+  Schrift auf der Bühne: sehr eng gesetzt und schwer. Das trägt den ganzen
+  kinematischen Eindruck, ohne dass ein einziges Bild geladen wird.
+*/
+.display {
+  font-weight: 800;
+  /*
+    Eng, aber nicht so eng, dass Satzzeichen abreissen: bei -0.045em wirkte
+    der Punkt am Satzende wie ein eigenes Wort.
+  */
+  letter-spacing: -0.032em;
+  line-height: 0.98;
+  text-wrap: balance;
+  /*
+    Notbremse für lange deutsche Komposita: "Verhandlungssache" passt auf
+    schmalen Handys in keine Zeile und wurde vorher rechts abgeschnitten.
+    Getrennt ist hässlicher als ungetrennt, aber unendlich viel besser als
+    halb sichtbar.
+  */
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
 /* Sichtbarer Fokus ist Pflicht, nicht Geschmackssache. */
 :focus-visible {
   outline: 2px solid var(--ring);

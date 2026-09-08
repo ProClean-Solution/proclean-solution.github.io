@@ -99,7 +99,7 @@ test("Ohne MWST-Pflicht wird keine Steuer ausgewiesen", () => {
   assert.equal(business.vatRegistered, false, "Annahme im Test veraltet");
   assert.equal(q.vatCents, 0);
   assert.equal(q.totalPerVisitCents, q.perVisitCents);
-  assert.ok(q.notices.some((n) => n.includes("keine Mehrwertsteuer")));
+  assert.ok(q.notices.some((n) => n.includes("ohne MwSt")));
 });
 
 test("Fensterreinigung wird nicht geschätzt, sondern als offen ausgewiesen", () => {
