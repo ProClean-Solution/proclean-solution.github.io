@@ -55,9 +55,12 @@ jobs:
           # Projektseiten liegen unter /<Repositoryname>/.
           PAGES_BASE: /ProClean-Solution
 
+      # EINMALIG von Hand nötig, bevor dieser Schritt durchläuft:
+      # Repository -> Settings -> Pages -> Build and deployment -> Source:
+      # "GitHub Actions". Der Workflow-Token darf eine Pages-Seite nicht
+      # selbst anlegen ("Resource not accessible by integration") — das ist
+      # eine Berechtigung, die bewusst beim Menschen bleibt.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:

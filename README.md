@@ -4,11 +4,33 @@ Website mit Preisrechner, Terminbuchung und Kundenassistent.
 
 ## Stand
 
-**Phase 1 (Fundament) — begonnen.** Preis-Engine, Antwort-Engine, Designsystem und
-Startseite stehen und sind getestet (33 Unit-Tests, 19 Browser-Prüfungen).
-Buchungskalender, Admin-Bereich und die kinematische Ebene folgen.
+Preis-Engine, Antwort-Engine, Designsystem, Startseite mit Scrollfilm,
+wachsender Paketkarte, Rechner, Assistent, Navigation und Abspann stehen und
+sind getestet (57 Unit-Tests, 102 Browser-Prüfungen). Buchungskalender und
+Admin-Bereich folgen.
 
 Standort Kloten, Einzugsgebiet Zürich und Umgebung. Währung CHF.
+
+## Live-Vorschau
+
+<https://riantetova.github.io/ProClean-Solution/>
+
+Jeder Push auf den Standardbranch baut und veröffentlicht neu; Tests und
+Typprüfung laufen davor. Möglich ist das, weil die Seite vollständig im
+Browser läuft — kein Server, keine API-Routen, keine Server Actions.
+
+**Einmalig einzuschalten:** Settings → Pages → Build and deployment →
+Source: **GitHub Actions**. Der Workflow-Token darf eine Pages-Seite nicht
+selbst anlegen; diese Berechtigung bleibt bewusst beim Menschen. Danach
+Actions → „Live-Vorschau" → *Run workflow*, oder einfach den nächsten Push
+abwarten.
+
+Dieselbe Version lokal:
+
+```bash
+npm run preview          # baut nach out/
+npm run preview:serve    # baut und liefert auf :3200 aus
+```
 
 ## Entwicklung
 
